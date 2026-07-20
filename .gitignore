@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.python-version
+
+# Node / web
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Env
+.env
+*.local
+
+# Generated runtime data (we keep corpus + queries under data/, but not outputs)
+server/data/traces/
+server/data/eval/
+server/data/embeddings_cache/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

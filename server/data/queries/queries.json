@@ -1,0 +1,113 @@
+{
+  "_comment": "Labeled test set for the RAG Trace Debugger eval. Each query has a ground-truth failure stage and the chunk id(s) that contain a correct answer (needed_chunk_ids). The eval runner compares the localizer's indicated_failure against ground_truth_failure. chunk_id format is <doc_stem>#<chunk_index>; the corpus is chunked by markdown paragraph (see rag/corpus.py).",
+  "queries": [
+    {
+      "id": "q01",
+      "query": "How many active multi-currency wallets can I have on the Enterprise plan?",
+      "expected_answer": "Up to 50 active multi-currency wallets on the Enterprise plan.",
+      "key_terms": ["50", "wallets"],
+      "needed_chunk_ids": ["pricing_enterprise#1"],
+      "ground_truth_failure": "none",
+      "notes": "Clean query. 'enterprise' + 'wallets' should retrieve pricing_enterprise cleanly."
+    },
+    {
+      "id": "q02",
+      "query": "What is the first-response time for a Severity-1 incident on Enterprise?",
+      "expected_answer": "15 minutes for Severity-1 incidents on Enterprise.",
+      "key_terms": ["15-minute", "15", "minutes"],
+      "needed_chunk_ids": ["support_sla#1"],
+      "ground_truth_failure": "none",
+      "notes": "Clean query; the support_sla table contains the answer directly."
+    },
+    {
+      "id": "q03",
+      "query": "What is the refund window for a new subscription?",
+      "expected_answer": "14 days for a full refund.",
+      "key_terms": ["14", "days"],
+      "needed_chunk_ids": ["refund_policy#0"],
+      "ground_truth_failure": "none",
+      "notes": "Clean retrieval/answer expected."
+    },
+    {
+      "id": "q04",
+      "query": "If my QuickBooks sync is failing, what tier of QuickBooks do I need?",
+      "expected_answer": "QuickBooks Online Advanced tier is required; the standard tier is not supported.",
+      "key_terms": ["advanced"],
+      "needed_chunk_ids": ["integrations#2"],
+      "ground_truth_failure": "none",
+      "notes": "Clean; the gotcha is explicitly stated in the integration doc."
+    },
+    {
+      "id": "q05",
+      "query": "What is the cost of an additional seat on the Growth plan?",
+      "expected_answer": "$18 per additional seat on Growth.",
+      "key_terms": ["$18", "18"],
+      "needed_chunk_ids": ["pricing#0"],
+      "ground_truth_failure": "rerank",
+      "notes": "RERANK failure. The legacy contradiction_seats doc also matches 'growth seat' and may outrank the current pricing doc; the needed answer is in the pricing table."
+    },
+    {
+      "id": "q06",
+      "query": "How many seats come with the Growth plan?",
+      "expected_answer": "5 seats included on Growth.",
+      "key_terms": ["5", "seats"],
+      "needed_chunk_ids": ["pricing#0"],
+      "ground_truth_failure": "rerank",
+      "notes": "RERANK failure. Contradiction_seats claims 10; a simple reranker may surface the wrong number."
+    },
+    {
+      "id": "q07",
+      "query": "Can I stream my audit logs to my own S3 bucket, and how is the export API limited?",
+      "expected_answer": "Yes, on Enterprise; the export API is rate-limited to 10 requests per minute.",
+      "key_terms": ["10", "requests", "minute"],
+      "needed_chunk_ids": ["audit_logs#2"],
+      "ground_truth_failure": "retrieval",
+      "notes": "RETRIEVAL miss. The rate-limit detail is in the THIRD chunk of audit_logs (chunk #2); a paragraph-chunked index may only retrieve the heading+retention chunk."
+    },
+    {
+      "id": "q08",
+      "query": "What regions are available for data residency, and can I change it myself later?",
+      "expected_answer": "us-east-1 default; Enterprise can elect eu-west-1 or ap-southeast-2; cannot self-serve change after provisioning.",
+      "key_terms": ["eu-west-1", "ap-southeast-2", "provisioning"],
+      "needed_chunk_ids": ["data_residency#0", "data_residency#1"],
+      "ground_truth_failure": "retrieval",
+      "notes": "RETRIEVAL miss risk. The 'cannot change it myself' part is in chunk #1; a query phrased about 'change myself' may retrieve only the regions chunk."
+    },
+    {
+      "id": "q09",
+      "query": "I'm on Enterprise and my account owner hasn't set up MFA. What happens to billing access?",
+      "expected_answer": "The account is locked out of billing actions after 7 days without MFA on the owner.",
+      "key_terms": ["locked", "7", "days", "billing"],
+      "needed_chunk_ids": ["mfa#0"],
+      "ground_truth_failure": "generation",
+      "notes": "GENERATION failure probe. Context is easy to retrieve; the failure mode is whether the model restates 'locked out of billing after 7 days' accurately vs. hedging/omitting. Under mock fallback the answer will miss key terms on purpose."
+    },
+    {
+      "id": "q10",
+      "query": "What happens to my data if I fully cancel my account?",
+      "expected_answer": "Data is retained for 30 days before permanent deletion, then unrecoverable.",
+      "key_terms": ["30", "days", "deletion"],
+      "needed_chunk_ids": ["offboarding#1"],
+      "ground_truth_failure": "generation",
+      "notes": "GENERATION failure probe. Retrieval should find offboarding; the model may give a generic answer instead of the specific 30-day window."
+    },
+    {
+      "id": "q11",
+      "query": "What HTTP status and header do I get when I exceed the API rate limit?",
+      "expected_answer": "HTTP 429 with a Retry-After header in seconds.",
+      "key_terms": ["429", "retry-after"],
+      "needed_chunk_ids": ["api_rate_limits#1"],
+      "ground_truth_failure": "assembly",
+      "notes": "ASSEMBLY failure probe. The answer lives in the second paragraph of api_rate_limits; if context is truncated to the table chunk only, the 429/Retry-After detail is lost."
+    },
+    {
+      "id": "q12",
+      "query": "Summarize what the Starter plan does and does not include.",
+      "expected_answer": "Starter ($29/mo, 2 seats) includes 60 RPM API, 30-day audit logs, optional MFA; does NOT include automated bank reconciliation.",
+      "key_terms": ["reconciliation", "$29"],
+      "needed_chunk_ids": ["pricing#0", "pricing#2"],
+      "ground_truth_failure": "assembly",
+      "notes": "ASSEMBLY failure probe. The answer is split across the pricing table and the NOTE line; assembly must keep both to answer 'does not include reconciliation'."
+    }
+  ]
+}
