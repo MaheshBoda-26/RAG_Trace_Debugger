@@ -108,10 +108,10 @@ def run_query(
         s.set(candidates=candidates, meta={"count": len(candidates)})
 
     # Stage 3: rerank
-    with ctx.stage("rerank", input={"top_k": rerank_k}) as s:
+    with ctx.stage("rerank", input={"top_k": rerank_k, "query": query}) as s:
         kept_results, dropped_results = [], []
         if results:
-            ro = rerank(results, top_k=rerank_k)
+            ro = rerank(results, top_k=rerank_k, query=query)
             kept_results, dropped_results = ro.kept, ro.dropped
             # Annotate candidates with rerank scores + kept/dropped.
             kept_ids = {r.chunk.chunk_id for r in kept_results}

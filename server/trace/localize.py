@@ -4,23 +4,19 @@ Given a finished trace, this estimates WHICH stage most likely caused a bad
 answer. It is a deterministic heuristic, reported as a diagnostic aid — not a
 guaranteed verdict (PRD §7 / §9).
 
-Ranking (first match wins). The localizer needs two extra inputs the trace
-itself doesn't always carry:
-  - needed_chunk_ids: the chunk id(s) that contain the answer, if known.
-    For the eval set these come from the labeled query; for ad-hoc queries
-    we pass [] and rely on the generation/assembly signals.
-  - key_terms: terms that should appear in a correct answer (from the query).
+Ranking (first match wins). Structural deficits — where the needed
+information never reached the model — are checked BEFORE generation, because a
+generation miss is often a *symptom* of an upstream drop, not the root cause.
 
-Signals
--------
-1. generation  — key terms present in the assembled context but ABSENT from the
-                 answer. (Right context, ignored/misused.)
-2. rerank      — a needed chunk WAS retrieved but got dropped at rerank.
-3. retrieval   — a needed chunk was NOT retrieved at all.
-4. query_rewrite — (informational) the rewrite changed tokens materially.
-5. assembly    — kept chunks contain a key term but the assembled context does
-                 not (e.g. truncation dropped the relevant sentence).
-6. none        — no detectable failure.
+1. retrieval    — a needed chunk was NOT retrieved at all.
+2. rerank       — a needed chunk WAS retrieved but got dropped at rerank.
+3. assembly     — kept chunks contain a key term but the assembled context does
+                  not (e.g. truncation dropped the relevant sentence).
+4. generation   — key terms present in the assembled context but ABSENT from the
+                 answer. (Right context, ignored/misused.) Only blamed when the
+                 context was actually complete.
+5. query_rewrite — (informational) the rewrite changed tokens materially.
+6. none         — no detectable failure.
 """
 from __future__ import annotations
 
@@ -37,7 +33,13 @@ def _stage(trace: Trace, name: StageName) -> Optional[StageEvent]:
 
 
 def _norm_tokens(text: str) -> set[str]:
-    return {t.lower().strip(".,;:!?\"'()[]") for t in text.split() if t.strip()}
+    # Strip markdown emphasis + common punctuation so '**14 days**' -> {'14','days'}.
+    strip = ".,;:!?\"'()[]*_`~|#-"
+    return {
+        t.lower().strip(strip)
+        for t in text.split()
+        if t.strip(strip)
+    }
 
 
 def localize_trace(
@@ -64,17 +66,15 @@ def localize_trace(
     context = (assembly.output.get("context") if assembly else trace.final_context) or ""
     answer = (generation.output.get("answer") if generation else trace.answer) or ""
 
-    # 1. GENERATION: key terms present in context but missing from the answer.
-    if keys:
-        ctx_tokens = _norm_tokens(context)
-        ans_tokens = _norm_tokens(answer)
-        missing_in_answer = [k for k in keys if k in ctx_tokens and k not in ans_tokens]
-        if missing_in_answer:
+    # 1. RETRIEVAL: a needed chunk was not retrieved at all.
+    if needed:
+        retrieved_ids = {c.chunk_id for c in retrieved_chunks}
+        missing = [cid for cid in needed if cid not in retrieved_ids]
+        if missing:
             return (
-                FailureStage.GENERATION,
-                f"Key term(s) present in assembled context but absent from answer: "
-                f"{', '.join(missing_in_answer[:5])}. The model likely ignored or "
-                f"misused the context.",
+                FailureStage.RETRIEVAL,
+                f"Needed chunk(s) not present in retrieved candidates: "
+                f"{', '.join(missing[:5])}. Retrieval missed the relevant passage.",
             )
 
     # 2. RERANK: a needed chunk was retrieved but dropped at rerank.
@@ -93,18 +93,7 @@ def localize_trace(
                 f"{', '.join(dropped_needed[:5])}. Consider rerank top-k or scoring.",
             )
 
-    # 3. RETRIEVAL: a needed chunk was not retrieved at all.
-    if needed:
-        retrieved_ids = {c.chunk_id for c in retrieved_chunks}
-        missing = [cid for cid in needed if cid not in retrieved_ids]
-        if missing:
-            return (
-                FailureStage.RETRIEVAL,
-                f"Needed chunk(s) not present in retrieved candidates: "
-                f"{', '.join(missing[:5])}. Retrieval missed the relevant passage.",
-            )
-
-    # 4. ASSEMBLY: a key term appears in a kept chunk but not in the context.
+    # 3. ASSEMBLY: a key term appears in a kept chunk but not in the context.
     if keys:
         kept_text = " ".join(c.text for c in rerank_chunks if c.kept)
         kept_tokens = _norm_tokens(kept_text)
@@ -115,6 +104,20 @@ def localize_trace(
                 FailureStage.ASSEMBLY,
                 f"Key term(s) present in kept chunks but missing from assembled "
                 f"context: {', '.join(lost[:5])}. Likely truncated/over-summarized.",
+            )
+
+    # 4. GENERATION: key terms present in context but missing from the answer.
+    #    Only blamed when the context was complete (the above checks passed).
+    if keys:
+        ctx_tokens = _norm_tokens(context)
+        ans_tokens = _norm_tokens(answer)
+        missing_in_answer = [k for k in keys if k in ctx_tokens and k not in ans_tokens]
+        if missing_in_answer:
+            return (
+                FailureStage.GENERATION,
+                f"Key term(s) present in assembled context but absent from answer: "
+                f"{', '.join(missing_in_answer[:5])}. The model likely ignored or "
+                f"misused the context.",
             )
 
     # 5. QUERY_REWRITE: informational — rewrite dropped tokens from the raw query.

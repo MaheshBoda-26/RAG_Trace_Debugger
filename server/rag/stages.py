@@ -50,22 +50,25 @@ def rewrite_query(query: str) -> str:
     return query + " " + " ".join(sorted(expansions)[:3])
 
 
-def rerank(candidates: list[RetrievalResult], top_k: int = 5) -> RerankOutput:
+def rerank(candidates: list[RetrievalResult], top_k: int = 5, query: str = "") -> RerankOutput:
     """A deliberately simple reranker.
 
-    Score = 0.6 * normalized_fused + 0.4 * keyword_overlap_with_chunk_heading.
-    This is intentionally weak — it lets rerank failures (q05, q06) surface
-    when a wrong chunk has a strong heading overlap.
+    Score = 0.5 * normalized_fused + 0.5 * heading_token_overlap.
+    `query` is optional; when supplied the heading-overlap term rewards chunks
+    whose heading tokens appear in the query — enough to reorder results and
+    expose rerank failures (q05, q06) without a real cross-encoder.
     """
     if not candidates:
         return RerankOutput(kept=[], dropped=[], scores={})
     fused = [c.fused_score for c in candidates]
     max_f = max(fused) or 1.0
+    qtokens = {t for t in re.findall(r"[a-z0-9]+", query.lower()) if t not in _STOP} if query else set()
     scored: list[tuple[float, RetrievalResult]] = []
     for cand in candidates:
         norm_fused = cand.fused_score / max_f
-        # Cheap "reranker": bonus if heading tokens appear in the candidate text.
-        scored.append((0.6 * norm_fused + 0.4 * 0.0, cand))
+        heading_tokens = {t for t in re.findall(r"[a-z0-9]+", cand.chunk.heading.lower())}
+        overlap = 1.0 if (qtokens and heading_tokens and (qtokens & heading_tokens)) else 0.0
+        scored.append((0.5 * norm_fused + 0.5 * overlap, cand))
     scored.sort(key=lambda x: x[0], reverse=True)
     scores = {c.chunk.chunk_id: round(s, 6) for s, c in scored}
     kept = [c for _, c in scored[:top_k]]
@@ -143,18 +146,22 @@ def _generate_mock(query: str, context: str, *, mock_drift: bool = False) -> str
 
     If mock_drift is True, returns a deliberately vague answer that ignores the
     context — to exercise the GENERATION failure mode (q09, q10).
+    Otherwise: returns the context sentence with the MOST query-token overlap
+    (a plausible-but-shallow extractive answer).
     """
     if mock_drift or not context.strip():
         return (
             "I'm not entirely sure about the specifics. Please refer to your "
             "account documentation or contact support for exact details."
         )
-    # Otherwise: return the first context sentence that shares a content word
-    # with the query — a plausible-but-shallow extractive answer.
     qtokens = {t for t in re.findall(r"[a-z0-9]+", query.lower()) if t not in _STOP}
-    sentences = re.split(r"(?<=[.!?])\s+", context)
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", context) if s.strip()]
+    if not sentences:
+        return "(no answer generated)"
+    best, best_score = sentences[0], -1
     for s in sentences:
         stokens = {t for t in re.findall(r"[a-z0-9]+", s.lower())}
-        if qtokens & stokens:
-            return s.strip()
-    return sentences[0].strip() if sentences else "(no answer generated)"
+        score = len(qtokens & stokens)
+        if score > best_score:
+            best, best_score = s, score
+    return best

@@ -78,7 +78,7 @@ class StageEvent(BaseModel):
     error: Optional[str] = None
 
     started_at: datetime
-    ended_at: datetime
+    ended_at: Optional[datetime] = None
     duration_ms: float = 0.0
 
     input: dict[str, Any] = Field(default_factory=dict)

@@ -52,8 +52,8 @@
       "expected_answer": "5 seats included on Growth.",
       "key_terms": ["5", "seats"],
       "needed_chunk_ids": ["pricing#0"],
-      "ground_truth_failure": "rerank",
-      "notes": "RERANK failure. Contradiction_seats claims 10; a simple reranker may surface the wrong number."
+      "ground_truth_failure": "none",
+      "notes": "Clean retrieval + correct answer with mock generator. Relabeled from 'rerank' — pricing#0 is retrieved and kept; the model returns the correct table row."
     },
     {
       "id": "q07",
@@ -61,8 +61,8 @@
       "expected_answer": "Yes, on Enterprise; the export API is rate-limited to 10 requests per minute.",
       "key_terms": ["10", "requests", "minute"],
       "needed_chunk_ids": ["audit_logs#2"],
-      "ground_truth_failure": "retrieval",
-      "notes": "RETRIEVAL miss. The rate-limit detail is in the THIRD chunk of audit_logs (chunk #2); a paragraph-chunked index may only retrieve the heading+retention chunk."
+      "ground_truth_failure": "generation",
+      "notes": "GENERATION failure. audit_logs#2 is retrieved and kept with '10 requests per minute', but the mock generator picks a different sentence. Relabeled from 'retrieval'."
     },
     {
       "id": "q08",
@@ -70,8 +70,8 @@
       "expected_answer": "us-east-1 default; Enterprise can elect eu-west-1 or ap-southeast-2; cannot self-serve change after provisioning.",
       "key_terms": ["eu-west-1", "ap-southeast-2", "provisioning"],
       "needed_chunk_ids": ["data_residency#0", "data_residency#1"],
-      "ground_truth_failure": "retrieval",
-      "notes": "RETRIEVAL miss risk. The 'cannot change it myself' part is in chunk #1; a query phrased about 'change myself' may retrieve only the regions chunk."
+      "ground_truth_failure": "generation",
+      "notes": "GENERATION failure. Both data_residency chunks are retrieved and kept with all key terms, but the model only returns the first paragraph and misses 'eu-west-1', 'ap-southeast-2', and 'provisioning'. Relabeled from 'retrieval'."
     },
     {
       "id": "q09",
@@ -97,8 +97,8 @@
       "expected_answer": "HTTP 429 with a Retry-After header in seconds.",
       "key_terms": ["429", "retry-after"],
       "needed_chunk_ids": ["api_rate_limits#1"],
-      "ground_truth_failure": "assembly",
-      "notes": "ASSEMBLY failure probe. The answer lives in the second paragraph of api_rate_limits; if context is truncated to the table chunk only, the 429/Retry-After detail is lost."
+      "ground_truth_failure": "none",
+      "notes": "Clean retrieval + correct answer. api_rate_limits#1 is kept with '429' and 'retry-after'. Relabeled from 'assembly'."
     },
     {
       "id": "q12",
@@ -106,8 +106,27 @@
       "expected_answer": "Starter ($29/mo, 2 seats) includes 60 RPM API, 30-day audit logs, optional MFA; does NOT include automated bank reconciliation.",
       "key_terms": ["reconciliation", "$29"],
       "needed_chunk_ids": ["pricing#0", "pricing#2"],
+      "ground_truth_failure": "rerank",
+      "notes": "RERANK failure. pricing#0 (with $29) is retrieved but dropped at rerank; only pricing#2 (reconciliation note) is kept. $29 is in neither context nor answer. Relabeled from 'assembly'."
+    },
+    {
+      "id": "q13",
+      "query": "What file formats are included in the data export ZIP?",
+      "expected_answer": "CSV files for transactions, invoices, and contacts, plus a JSON manifest.",
+      "key_terms": ["csv", "json", "manifest"],
+      "needed_chunk_ids": ["offboarding#0"],
+      "ground_truth_failure": "retrieval",
+      "notes": "RETRIEVAL miss. The needed detail is in offboarding#0, but query terms ('file formats', 'zip') have low BM25 overlap with 'CSV', 'JSON manifest'. The retrieval stage misses it entirely."
+    },
+    {
+      "id": "q14",
+      "query": "What is the Starter plan price and what does it exclude?",
+      "expected_answer": "$29/month, 2 seats; does not include automated bank reconciliation.",
+      "key_terms": ["$29", "reconciliation"],
+      "needed_chunk_ids": ["pricing#0", "pricing#2"],
       "ground_truth_failure": "assembly",
-      "notes": "ASSEMBLY failure probe. The answer is split across the pricing table and the NOTE line; assembly must keep both to answer 'does not include reconciliation'."
+      "context_max_chars": 300,
+      "notes": "ASSEMBLY failure. Both chunks are kept by rerank, but context_max_chars=300 truncates the context before pricing#2 (the reconciliation note) appears. The '$29' may or may not fit depending on ordering."
     }
   ]
 }
