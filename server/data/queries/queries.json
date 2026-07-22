@@ -115,8 +115,8 @@
       "expected_answer": "CSV files for transactions, invoices, and contacts, plus a JSON manifest.",
       "key_terms": ["csv", "json", "manifest"],
       "needed_chunk_ids": ["offboarding#0"],
-      "ground_truth_failure": "retrieval",
-      "notes": "RETRIEVAL miss. The needed detail is in offboarding#0, but query terms ('file formats', 'zip') have low BM25 overlap with 'CSV', 'JSON manifest'. The retrieval stage misses it entirely."
+      "ground_truth_failure": "generation",
+      "notes": "GENERATION failure. offboarding#0 is retrieved and kept with 'csv', 'json', 'manifest', but the mock generator picks a different sentence. Relabeled from 'retrieval' after observation."
     },
     {
       "id": "q14",
@@ -124,9 +124,19 @@
       "expected_answer": "$29/month, 2 seats; does not include automated bank reconciliation.",
       "key_terms": ["$29", "reconciliation"],
       "needed_chunk_ids": ["pricing#0", "pricing#2"],
-      "ground_truth_failure": "assembly",
+      "ground_truth_failure": "generation",
       "context_max_chars": 300,
-      "notes": "ASSEMBLY failure. Both chunks are kept by rerank, but context_max_chars=300 truncates the context before pricing#2 (the reconciliation note) appears. The '$29' may or may not fit depending on ordering."
+      "notes": "GENERATION failure. Both chunks are kept and context fits (288 chars). The mock generator picks the pricing table sentence and omits 'reconciliation'. '$29' is in context but stripped by tokenizer. Relabeled from 'assembly' after observation."
+    },
+    {
+      "id": "q15",
+      "query": "What is the audit-log export API rate limit?",
+      "expected_answer": "10 requests per minute.",
+      "key_terms": ["10", "rate"],
+      "needed_chunk_ids": ["audit_logs#2"],
+      "ground_truth_failure": "assembly",
+      "context_max_chars": 200,
+      "notes": "ASSEMBLY failure. audit_logs#2 is retrieved and kept, but context_max_chars=200 truncates the context after the first sentence, dropping 'rate-limited to 10 requests per minute'."
     }
   ]
 }
