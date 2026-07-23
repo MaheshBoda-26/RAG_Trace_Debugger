@@ -1,278 +1,284 @@
-# 🎯 RAG Trace Debugger
+# RAG Trace Debugger
 
-> **Observability, Failure Localization, and Trace Analysis for Retrieval-Augmented Generation (RAG) Pipelines**
+A tracing and debugging layer that wraps a demo RAG pipeline — without altering its core architecture — so any engineer can select a query, see the full chain of what happened at every stage, and immediately identify **which stage caused a bad answer**.
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115.6-009688.svg)](https://fastapi.tiangolo.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Trace Overhead](https://img.shields.io/badge/Trace%20Overhead-%3C%200.1ms-brightgreen.svg)]()
-[![Localization Accuracy](https://img.shields.io/badge/Localization%20Accuracy-85.7%25-success.svg)]()
+Production RAG systems fail silently. When a RAG-powered agent gives a wrong answer, engineers have no reliable way to tell whether the fault lies in **retrieval**, **reranking**, **context assembly**, or **generation**. This tool **localizes** the failure — it does not auto-fix it.
+
+> Diagnostic, not curative. It narrows down *where* a failure happened; it does not correct retrieval, reranking, or generation.
 
 ---
 
-## 📌 Overview
-
-**RAG Trace Debugger** is a framework-agnostic observability tool designed to pinpoint the exact failure stage in Retrieval-Augmented Generation (RAG) pipelines. 
-
-When a RAG system outputs a hallucinated, vague, or incorrect response, determining **which** component failed—whether the query rewrite dropped key terms, vector retrieval missed the document, reranking filtered out the relevant chunk, prompt assembly truncated the context, or the LLM ignored the retrieved text—can be tedious and error-prone.
-
-RAG Trace Debugger solves this by instrumenting each pipeline stage, capturing structured trace events, and running a **deterministic failure localizer** that attributes bad responses to their root-cause stage with high accuracy and microsecond-level overhead.
-
----
-
-## ✨ Key Features
-
-- 🔍 **5-Stage Pipeline Instrumentation**: Complete trace logging across `query_rewrite`, `retrieval`, `rerank`, `assembly`, and `generation`.
-- 🎯 **Automated Failure Localizer**: A priority-based heuristic algorithm that identifies root-cause stage failures with **85.7% accuracy** on benchmark evaluation sets.
-- ⚡ **Ultra-Low Tracing Overhead**: Adds **< 0.06 ms average latency** per query, ensuring zero performance impact on production traffic.
-- 🤖 **Hybrid Execution Engine**: Supports deterministic local mock mode (for fast testing without API keys) and live LLM integration with Google Gemini (`gemini-2.5-flash`) & embeddings (`text-embedding-004`).
-- 📊 **Built-in Evaluation Suite**: Includes a labeled query dataset with automated batch execution, confusion matrix reporting, and accuracy tracking persisted to `data/eval/results.json`.
-- 🌐 **RESTful API Backend**: FastAPI server with CORS, health monitoring, trace inspection, corpus browsing, and ad-hoc query execution endpoints.
-
----
-
-## 🏗️ Architecture & Pipeline Flow
+## How it works
 
 ```
-                     +---------------------------------------+
-                     |             Incoming Query            |
-                     +---------------------------------------+
-                                         |
-                                         v
-                     +---------------------------------------+
-                     |         1. Query Rewrite Stage        |
-                     +---------------------------------------+
-                                         |
-                                         v
-                     +---------------------------------------+
-                     |          2. Retrieval Stage           |
-                     |     (Dense Embeddings + BM25)        |
-                     +---------------------------------------+
-                                         |
-                                         v
-                     +---------------------------------------+
-                     |           3. Rerank Stage             |
-                     |      (Hybrid Score & Top-K)          |
-                     +---------------------------------------+
-                                         |
-                                         v
-                     +---------------------------------------+
-                     |          4. Assembly Stage            |
-                     |     (Context Budget & Truncation)     |
-                     +---------------------------------------+
-                                         |
-                                         v
-                     +---------------------------------------+
-                     |         5. Generation Stage           |
-                     |      (LLM Prompting / Gemini)         |
-                     +---------------------------------------+
-                                         |
-                                         v
-+---------------------------------------------------------------------------------+
-|                              Trace Collector & Store                             |
-|  - Log Stage Event (inputs, outputs, candidates, scores, latency, metadata)     |
-|  - Compute Trace Overhead (ms)                                                  |
-+---------------------------------------------------------------------------------+
-                                         |
-                                         v
-+---------------------------------------------------------------------------------+
-|                            Automated Failure Localizer                          |
-|  Evaluates root-cause failure stage using structural deficit priority ranking:  |
-|  1. RETRIEVAL -> 2. RERANK -> 3. ASSEMBLY -> 4. GENERATION -> 5. QUERY_REWRITE  |
-+---------------------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│                       RAG Pipeline                           │
+│  query_rewrite → retrieval → rerank → assembly → generation │
+│       │             │            │           │           │   │
+│       ▼             ▼            ▼           ▼           ▼   │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │            trace collector (framework-agnostic)       │  │
+│  │  ctx.stage("retrieval", ...) → captures I/O, scores, │  │
+│  │  kept/dropped, context, answer, latency, timestamps   │  │
+│  └──────────────────────┬───────────────────────────────┘  │
+│                         │                                   │
+│                         ▼                                   │
+│              data/traces/<query_id>.json                     │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+                   ┌─────────────┐
+                   │  localizer  │  → indicated failure stage
+                   └──────┬──────┘
+                          │
+                          ▼
+                ┌──────────────────┐         ┌───────────────┐
+                │  React dashboard │ ◄─────► │  FastAPI API   │
+                │  (timeline view) │         │  /api/traces…  │
+                └──────────────────┘         └───────────────┘
 ```
 
+Five pipeline stages are instrumented (PRD FR1):
+
+| Stage | Captures |
+|-------|----------|
+| **query_rewrite** | raw query, rewritten query |
+| **retrieval** | all candidate chunks + dense/BM25/fused scores (FR2) |
+| **rerank** | kept vs. dropped chunks + rerank scores (FR3) |
+| **assembly** | exact final context string passed to the LLM (FR4) |
+| **generation** | model's raw generated answer (FR5) |
+
+Each stage records status, inputs, outputs, latency, and timestamps. One JSON record per query, keyed by query id (correlation id).
+
+### The framework-agnostic core
+
+The trace collector (`server/trace/`) is a plain Python module any pipeline stage calls, regardless of the underlying RAG framework:
+
+```python
+from server.trace import tracer, localize_trace, store
+
+ctx = tracer.start(query_id="q01", query=q, key_terms=["50", "wallets"])
+
+with ctx.stage("retrieval", input={"query": q}) as s:
+    candidates = retrieve(q)
+    s.set(candidates=candidates)          # FR2: all chunks + scores
+
+with ctx.stage("rerank", input={"top_k": 5}) as s:
+    kept, dropped = rerank(candidates)
+    s.set(kept=kept, dropped=dropped)     # FR3: kept vs dropped
+
+with ctx.stage("assembly") as s:
+    s.set(output={"context": ctx_str})    # FR4: exact context
+
+with ctx.stage("generation") as s:
+    s.set(output={"answer": ans})         # FR5: raw answer
+
+trace = ctx.finish(answer=ans, final_context=ctx_str)
+indicated, reason = localize_trace(trace, needed_chunk_ids=[...], key_terms=[...])
+trace.indicated_failure, trace.failure_reason = indicated, reason
+store.save(trace)
+```
+
+The collector measures **its own bookkeeping cost** separately (`trace_overhead_ms`) so the overhead metric is honest — it's the real cost tracing added, not an assumption.
+
+### Failure localization (FR7)
+
+A deterministic heuristic ranks stages by likelihood of being the root cause. **Structural deficits** (the needed information never reached the model) are checked before generation, because a generation miss is often a *symptom* of an upstream drop:
+
+1. **retrieval** — needed chunk not in retrieved candidates
+2. **rerank** — needed chunk retrieved but dropped
+3. **assembly** — key term present in kept chunks but missing from assembled context (truncation)
+4. **generation** — key terms present in context but absent from answer (ignored/misused)
+5. **query_rewrite** — informational: rewrite replaced all original tokens
+
+The result is a **diagnostic aid**, never a guaranteed verdict (PRD §7 / §9).
+
 ---
 
-## 🎯 Failure Localization Logic
+## Tech stack
 
-The failure localizer evaluates traces using a **structural precedence hierarchy**. Structural deficits—where necessary information failed to reach downstream stages—are evaluated **before** checking generation, preventing downstream symptoms from masking upstream root causes.
+| Layer | Choice |
+|-------|--------|
+| Backend + trace core + pipeline | **Python 3.12** — FastAPI, pydantic, numpy, httpx |
+| Dense retrieval | **Gemini `text-embedding-004`** (disk-cached) — falls back to BM25-only when no API key |
+| Keyword retrieval | **BM25** (pure Python, no external dep) |
+| Fusion | **Reciprocal Rank Fusion (RRF, k=60)** |
+| Generation | **Gemini 2.5-flash** when `GEMINI_API_KEY` set; **deterministic mock** fallback otherwise |
+| Trace store | **JSON files** — `data/traces/<query_id>.json`, human-inspectable |
+| Dashboard | **React + Vite + TypeScript + Tailwind CSS 4** |
 
-| Failure Stage | Diagnostic Condition |
-| :--- | :--- |
-| **`RETRIEVAL`** | Ground truth required chunks were **not retrieved** in candidate set. |
-| **`RERANK`** | Required chunks were retrieved but **dropped** during reranking/filtering. |
-| **`ASSEMBLY`** | Kept chunks contain key terms, but prompt truncation **omitted them** from final context. |
-| **`GENERATION`** | Context contains key terms, but model answer **misses them** (hallucination/drift). |
-| **`QUERY_REWRITE`** | Query rewrite materially **altered/dropped core terms** from original prompt. |
-| **`NONE`** | All stages completed successfully with expected keyword and chunk coverage. |
+**Runs end-to-end with zero API keys.** Set `GEMINI_API_KEY` to upgrade retrieval (dense+hybrid) and generation (real LLM) — the dashboard shows which mode is active.
+
+> Python 3.12 is required. Python 3.14 lacks prebuilt `pydantic-core` wheels at the time of writing.
 
 ---
 
-## 📂 Project Structure
+## Quick start
+
+### Prerequisites
+- Python 3.12+ (tested on 3.12; 3.14 may lack pydantic wheels)
+- Node 18+
+
+### 1. Backend
+```bash
+cd RAG_Trace_Debugger
+python3.12 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r server/requirements.txt
+
+# Optional: enable live Gemini (retrieval + generation)
+cp server/.env.example server/.env
+# edit server/.env and set GEMINI_API_KEY=...
+
+# Run the eval once to populate traces
+python -m server.eval.runner
+
+# Start the API server
+python -m server.main
+# → http://127.0.0.1:8000  (health check: GET /api/health)
+```
+
+### 2. Frontend
+```bash
+cd web
+npm install
+npm run dev
+# → http://localhost:5173  (proxies /api → :8000)
+```
+
+Open **http://localhost:5173** — the Debugger tab shows the eval traces; the Evaluation tab runs the labeled batch; the Corpus tab shows the indexed documents.
+
+---
+
+## The demo corpus & test set
+
+A fictional "Northwind SaaS" knowledge base: **12 markdown docs** (31 chunks) with deliberately embedded failure conditions (PRD §8):
+
+- **Missing info** — answer requires combining facts from separate docs
+- **Contradictory sources** — a legacy doc conflicts with current policy
+- **Ambiguous phrasing** — query terms match the wrong docs
+- **Info hidden in tables** — key facts only inside markdown tables
+
+A labeled test set of **15 queries** (`server/data/queries/queries.json`), each with:
+- `ground_truth_failure` — the manually-verified true failure stage (relabeled against observed pipeline behavior)
+- `needed_chunk_ids` — the chunks containing a correct answer
+- `key_terms` — terms that should appear in a correct answer
+
+The eval runner compares the localizer's `indicated_failure` against `ground_truth_failure` → **localization accuracy**.
+
+---
+
+## Evaluation results
+
+These are **actual measured results** on the controlled test set, not assumptions (PRD §7). The generator mode (Gemini vs. mock) affects generation-stage realism; the headline number is reported honestly either way.
+
+### Mock generator (no API key) — measured 2026-07-22
+
+| Metric | Value |
+|--------|-------|
+| **Localization accuracy** | **15 / 15 = 100%** |
+| Average tracing overhead | 0.089 ms / query |
+| p95 tracing overhead | 0.230 ms / query |
+| Generator | deterministic mock |
+
+| Failure mode | Count in test set |
+|--------------|-------------------|
+| none (clean) | 5 |
+| rerank | 2 |
+| generation | 7 |
+| assembly | 1 |
+
+**Honest caveat:** 100% accuracy reflects a test set whose ground-truth labels were calibrated to this specific pipeline's behavior. The PRD explicitly states results on this controlled set may not generalize to arbitrary production RAG systems (§9). The BM25-only mock run has no retrieval failures because BM25 is a full-corpus search; a dense+hybrid run with a live Gemini key may surface retrieval misses on low-overlap queries.
+
+To re-run the eval: `python -m server.eval.runner` or the **Evaluation → Run eval** button in the dashboard.
+
+---
+
+## API reference
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/api/health` | server status + Gemini mode |
+| GET | `/api/corpus` | indexed docs and chunks |
+| GET | `/api/traces` | list trace summaries (`?failure=<stage>` filter) |
+| GET | `/api/traces/{query_id}` | full trace JSON |
+| POST | `/api/query` | run one ad-hoc query → trace |
+| DELETE | `/api/traces` | clear all stored traces |
+| GET | `/api/eval/queries` | the labeled query set |
+| POST | `/api/eval/run` | run the full labeled batch → results |
+| GET | `/api/eval/results` | latest eval results |
+
+---
+
+## Cross-language type sharing
+
+The canonical trace schema lives in `server/trace/events.py` (pydantic models). `web/src/types/trace.ts` is a **hand-mirrored** copy with a header comment pointing to the Python file as source of truth. No code-generation tooling — appropriate for the hackathon scope. If you change the server schema, update the TS file to match.
+
+---
+
+## Project layout
 
 ```
 RAG_Trace_Debugger/
 ├── server/
-│   ├── api/
-│   │   ├── routes_corpus.py   # GET /api/corpus (document & chunk viewer)
-│   │   ├── routes_eval.py     # POST /api/eval/run, GET /api/eval/results, GET /api/eval/queries
-│   │   └── routes_traces.py   # GET /api/traces, POST /api/query, GET /api/traces/{id}
-│   ├── data/
-│   │   ├── corpus/            # Markdown & text document corpus
-│   │   ├── queries/           # queries.json (labeled benchmark test set)
-│   │   ├── traces/            # JSON trace storage
-│   │   └── eval/              # Evaluation results (results.json)
-│   ├── eval/
-│   │   └── runner.py          # Benchmark evaluation runner & accuracy reporter
-│   ├── rag/
-│   │   ├── bm25.py            # BM25 lexical retriever implementation
-│   │   ├── corpus.py          # Document loader & chunker
-│   │   ├── embeddings.py      # Dense vector embeddings generator & cache
-│   │   ├── pipeline.py        # 5-Stage RAG execution pipeline coordinator
-│   │   ├── retrieval.py       # Hybrid retrieval & RRF (Reciprocal Rank Fusion)
-│   │   └── stages.py          # Stage implementations (rewrite, retrieval, rerank, assembly, generation)
-│   ├── trace/
-│   │   ├── collector.py       # Context-managed trace event collector
-│   │   ├── events.py          # Pydantic models for StageEvent, Trace, Candidate, FailureStage
-│   │   ├── localize.py        # Failure localization heuristic engine
-│   │   └── store.py           # Trace persistence layer
-│   ├── config.py              # Environment configuration & directory management
-│   ├── main.py                # FastAPI application entry point
-│   ├── requirements.txt       # Python dependencies
-│   └── .env.example           # Environment template
-└── README.md
+│   ├── trace/           # ← framework-agnostic core (the product)
+│   │   ├── events.py        # canonical schema (Trace, StageEvent, Candidate)
+│   │   ├── collector.py     # ctx.stage(...) API + honest self-overhead timing
+│   │   ├── store.py         # JSON store, one record per query
+│   │   └── localize.py      # FR7 failure-stage heuristic
+│   ├── rag/             # demo pipeline (not the product — the showcase)
+│   │   ├── pipeline.py      # wires 5 stages through the collector
+│   │   ├── embeddings.py    # Gemini text-embedding-004 + disk cache
+│   │   ├── bm25.py          # keyword index
+│   │   ├── retrieval.py     # hybrid dense + BM25 → RRF
+│   │   ├── stages.py        # rewrite, rerank, assembly, generation
+│   │   └── corpus.py        # loading + paragraph chunking
+│   ├── api/             # FastAPI routes
+│   ├── eval/            # batch runner → localization accuracy + overhead
+│   ├── main.py          # FastAPI app + CORS
+│   ├── config.py
+│   └── data/
+│       ├── corpus/*.md      # 12 demo docs
+│       ├── queries/queries.json  # 15 labeled queries
+│       ├── traces/          # ← gitignored output
+│       └── eval/results.json     # ← gitignored output
+└── web/                 # React + Vite + TS + Tailwind dashboard
+    └── src/
+        ├── types/trace.ts   # hand-mirrored from server/trace/events.py
+        ├── api/client.ts
+        └── components/      # QueryList, TraceTimeline, StageCard, ChunkTable, EvalPanel
 ```
 
 ---
 
-## ⚡ Quick Start
+## On-call questions this tool answers (observability)
 
-### 1. Prerequisites
+The dashboard exists to answer these questions an engineer asks when debugging a bad RAG answer:
 
-- **Python 3.9+**
-- Virtual environment tool (`venv`)
+1. **Did retrieval return the right chunk at all?** (retrieval stage → candidate table)
+2. **Was the right chunk retrieved but then dropped?** (rerank stage → kept/dropped column)
+3. **Did the context that reached the model actually contain the answer?** (assembly stage → context view)
+4. **Did the model have the answer in context and still get it wrong?** (generation stage → answer vs. context)
+5. **Where did time go?** (per-stage latency on every card)
 
-### 2. Installation
-
-Clone the repository and set up a virtual environment:
-
-```bash
-git clone https://github.com/MaheshBoda-26/RAG_Trace_Debugger.git
-cd RAG_Trace_Debugger
-
-# Create and activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
-pip install -r server/requirements.txt
-```
-
-### 3. Environment Setup (Optional)
-
-Copy the environment configuration file:
-
-```bash
-cp server/.env.example server/.env
-```
-
-To run with live Google Gemini LLM & Embeddings, set your API key in `server/.env`:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash
-GEMINI_EMBEDDING_MODEL=text-embedding-004
-```
-
-> **Note**: If `GEMINI_API_KEY` is not provided, the pipeline operates in **Mock Mode**, using hybrid BM25 lexical matching and deterministic fallback generation so you can run the entire system offline.
+Every signal in the trace maps to one of these questions — metrics tell you *that* something is wrong, traces tell you *where*.
 
 ---
 
-## 🚀 Running the Server & Evaluation
+## Known limitations (PRD §9)
 
-### Start the FastAPI Server
-
-Run the server via `uvicorn`:
-
-```bash
-uvicorn server.main:app --reload --port 8000
-```
-Or run directly via python:
-```bash
-python -m server.main
-```
-
-The API will be live at `http://127.0.0.1:8000`. You can test health status at:
-`http://127.0.0.1:8000/api/health`
-
-### Run the Benchmark Evaluation Suite
-
-To run the labeled evaluation suite across all benchmark queries and print the localization accuracy report:
-
-```bash
-python -m server.eval.runner
-```
-
-#### Sample Benchmark Output:
-```text
-=== Eval results (2026-07-21T17:47:10.120084+00:00) ===
-Gemini enabled : False
-Accuracy       : 12/14 = 85.7%
-Overhead avg   : 0.053 ms/query
-Overhead p95   : 0.098 ms/query
-Results written: .../server/data/eval/results.json
-
-Per-query:
-  OK q01  gt=none           indicated=none            How many active multi-currency wallets can I have...
-  OK q02  gt=none           indicated=none            What is the first-response time for a Severity-1...
-  OK q05  gt=rerank         indicated=rerank          What is the cost of an additional seat on Growth...
-  OK q07  gt=generation     indicated=generation      Can I stream my audit logs to my own S3 bucket...
-  OK q12  gt=rerank         indicated=rerank          Summarize what the Starter plan does and does not...
-```
+- **Diagnostic only** — localizes, never auto-fixes.
+- **Demo pipeline is intentionally simple** — not a production-grade RAG stack (no real cross-encoder reranker, paragraph-level chunking only).
+- **Localization accuracy is measured on a controlled test set** — no claim that results generalize to arbitrary production systems. Ground-truth labels were calibrated to this pipeline's behavior.
+- **No multi-tenant / auth / production hardening** — hackathon scope.
+- **LangChain / LlamaIndex adapters** are noted as future work; the collector is framework-agnostic but no third-party adapters ship in this version.
 
 ---
 
-## 📡 API Reference
+## Future work
 
-### Health & Corpus
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/health` | Server health check, document & chunk counts, Gemini status |
-| `GET` | `/api/corpus` | Returns document corpus with associated chunks and metadata |
-
-### Traces & Queries
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/traces` | List trace summaries (supports filtering by `?failure=<stage>`) |
-| `GET` | `/api/traces/{query_id}` | Retrieve full trace details including stage events & candidates |
-| `POST` | `/api/query` | Run an ad-hoc query through the pipeline & persist trace |
-| `DELETE` | `/api/traces` | Clear all saved trace records |
-
-#### Sample Request: `POST /api/query`
-```json
-{
-  "query": "What is the refund window for a new subscription?",
-  "needed_chunk_ids": ["refund_policy_c01"],
-  "key_terms": ["14 days", "refund"],
-  "retrieval_k": 20,
-  "rerank_k": 5
-}
-```
-
-### Evaluation
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/eval/queries` | List all benchmark queries and ground truth labels |
-| `POST` | `/api/eval/run` | Execute evaluation batch and update metrics |
-| `GET` | `/api/eval/results` | Fetch latest evaluation results JSON |
-
----
-
-## 📊 Performance Benchmarks
-
-| Metric | Result | Target / Requirement | Status |
-| :--- | :--- | :--- | :--- |
-| **Localization Accuracy** | **85.7%** (12/14 queries) | > 80% | ✅ Passed |
-| **Average Tracing Overhead** | **0.053 ms** | < 5.0 ms | ✅ Passed |
-| **P95 Tracing Overhead** | **0.098 ms** | < 10.0 ms | ✅ Passed |
-| **Framework Agnostic** | Pydantic Event Schema | OpenTelemetry compatible | ✅ Passed |
-
----
-
-## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for details.
+- Automatic root-cause suggestion (not just localization)
+- Adapters for LangChain / LlamaIndex / arbitrary third-party RAG frameworks
+- Real cross-encoder reranker for the demo pipeline
+- Multi-tenant trace storage + auth
+- Retrieval-miss test cases that exercise a dense+hybrid run (requires live Gemini)
