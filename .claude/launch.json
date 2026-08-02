@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rag-trace-debugger",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--host", "0.0.0.0"],
+      "port": 5173,
+      "url": "http://localhost:5173",
+      "autoPort": true,
+      "cwd": "/Users/maheshboda/Projects/RAG_Trace_Debugger/web"
+    }
+  ]
+}

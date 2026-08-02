@@ -1,4 +1,4 @@
-/** Thin fetch wrapper for the RAG Trace Debugger API. */
+/** Thin fetch wrapper for the RAG-ger API. */
 import type {
   CorpusResponse,
   EvalResults,

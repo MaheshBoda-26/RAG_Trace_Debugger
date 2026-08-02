@@ -16,7 +16,7 @@ export function About() {
                 <span className="text-xs font-medium">About the project</span>
               </div>
               <h1 className="mb-6">
-                Why <span className="text-primary">RAG Trace Debugger</span> exists
+                Why <span className="text-primary">RAG-ger</span> exists
               </h1>
               <p className="text-lg md:text-xl text-text-muted max-w-2xl mx-auto">
                 Production RAG systems fail silently. When an agent gives a wrong answer,
@@ -77,7 +77,7 @@ export function About() {
               </header>
               <div className="prose prose-invert max-w-none text-text-muted space-y-6">
                 <p>
-                  RAG Trace Debugger is a <strong>tracing and debugging layer</strong> that wraps an existing RAG
+                  RAG-ger is a <strong>tracing and debugging layer</strong> that wraps an existing RAG
                   pipeline — without altering its core architecture — so that any engineer can select a query,
                   see the full chain of what happened at every stage, and immediately identify which stage caused
                   a bad answer.

@@ -85,7 +85,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold">RAG Trace Debugger</h1>
+            <h1 className="text-lg font-semibold">RAG-ger</h1>
             {health && (
               <span
                 className={`text-xs px-2 py-0.5 rounded-full border ${
@@ -200,7 +200,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
       </main>
 
       <footer className="max-w-7xl mx-auto px-4 py-4 text-center text-xs text-slate-400">
-        RAG Trace Debugger · diagnostic tool, not a fix-it tool · localizes failure, does not auto-resolve
+        RAG-ger · diagnostic tool, not a fix-it tool · localizes failure, does not auto-resolve
       </footer>
     </div>
   );
