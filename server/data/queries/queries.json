@@ -43,8 +43,8 @@
       "expected_answer": "$18 per additional seat on Growth.",
       "key_terms": ["$18", "18"],
       "needed_chunk_ids": ["pricing#0"],
-      "ground_truth_failure": "rerank",
-      "notes": "RERANK failure. The legacy contradiction_seats doc also matches 'growth seat' and may outrank the current pricing doc; the needed answer is in the pricing table."
+      "ground_truth_failure": "none",
+      "notes": "Cross-encoder reranker correctly identifies the pricing doc. The legacy contradiction_seats doc no longer outranks it."
     },
     {
       "id": "q06",

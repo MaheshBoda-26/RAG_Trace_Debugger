@@ -8,27 +8,13 @@ mock (so the demo & eval run with or without a key).
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
 from typing import Optional
 
 from ..config import GEMINI_API_KEY, GEMINI_MODEL, has_gemini
 from .retrieval import RetrievalResult
+from .reranker import RerankOutput, rerank_cross_encoder
 
 _STOP = {"the", "a", "an", "is", "are", "of", "for", "to", "on", "in", "and", "or", "what", "how", "can", "i", "my", "do", "does"}
-
-
-@dataclass
-class RerankInput:
-    candidates: list[RetrievalResult]
-    top_k: int = 5
-
-
-@dataclass
-class RerankOutput:
-    kept: list[RetrievalResult]
-    dropped: list[RetrievalResult]
-    # rerank scores aligned to candidates order
-    scores: dict[str, float] = field(default_factory=dict)
 
 
 def rewrite_query(query: str) -> str:
@@ -51,13 +37,25 @@ def rewrite_query(query: str) -> str:
 
 
 def rerank(candidates: list[RetrievalResult], top_k: int = 5, query: str = "") -> RerankOutput:
-    """A deliberately simple reranker.
+    """Rerank candidates using a cross-encoder model.
+    
+    Uses sentence-transformers CrossEncoder (default: cross-encoder/ms-marco-MiniLM-L-6-v2)
+    to score (query, chunk_text) pairs and rerank the candidates.
+    
+    The model is loaded once and cached (like embeddings).
+    """
+    # Use the cross-encoder reranker
+    return rerank_cross_encoder(candidates, top_k=top_k, query=query)
 
+
+def _rerank_simple(candidates: list[RetrievalResult], top_k: int = 5, query: str = "") -> RerankOutput:
+    """Legacy simple reranker (kept for reference/fallback).
+    
     Score = 0.5 * normalized_fused + 0.5 * heading_token_overlap.
     `query` is optional; when supplied the heading-overlap term rewards chunks
-    whose heading tokens appear in the query — enough to reorder results and
-    expose rerank failures (q05, q06) without a real cross-encoder.
+    whose heading tokens appear in the query.
     """
+    from .reranker import RerankOutput
     if not candidates:
         return RerankOutput(kept=[], dropped=[], scores={})
     fused = [c.fused_score for c in candidates]

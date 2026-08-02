@@ -2,48 +2,104 @@ import type { StageEvent } from '../types/trace';
 import { STAGE_LABELS } from '../types/trace';
 import { ChunkTable } from './ChunkTable';
 
-function JsonView({ data }: { data: Record<string, unknown> }) {
+interface JsonViewProps {
+  data: Record<string, unknown>;
+}
+
+function JsonView({ data }: JsonViewProps) {
   if (!data || Object.keys(data).length === 0) return null;
   return (
-    <pre className="mt-2 text-xs bg-slate-50 dark:bg-slate-800/60 rounded p-2 overflow-x-auto text-slate-600 dark:text-slate-300">
-      {JSON.stringify(data, null, 2)}
-    </pre>
+    <details className="mt-2 group">
+      <summary className="text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer flex items-center gap-1.5 hover:text-slate-700 dark:hover:text-slate-200">
+        <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        Input data
+      </summary>
+      <pre className="mt-2 text-xs bg-slate-50 dark:bg-slate-800/60 rounded p-2 overflow-x-auto text-slate-600 dark:text-slate-300 max-h-48 overflow-y-auto">
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    </details>
   );
 }
 
-function TextBlock({ label, text }: { label: string; text: string }) {
+interface TextBlockProps {
+  label: string;
+  text: string;
+}
+
+function TextBlock({ label, text }: TextBlockProps) {
   if (!text) return null;
   return (
     <div className="mt-2">
       <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{label}</div>
-      <pre className="text-xs font-mono whitespace-pre-wrap break-words bg-slate-50 dark:bg-slate-800/60 rounded p-2 text-slate-700 dark:text-slate-300 max-h-64 overflow-y-auto">
+      <div className="text-xs font-mono whitespace-pre-wrap break-words bg-slate-50 dark:bg-slate-800/60 rounded p-2 text-slate-700 dark:text-slate-300 max-h-64 overflow-y-auto border border-slate-200 dark:border-slate-700">
         {text}
-      </pre>
+      </div>
     </div>
   );
 }
 
-export function StageCard({ stage }: { stage: StageEvent }) {
+interface StageCardSkeletonProps {
+  label: string;
+}
+
+function StageCardSkeleton({ label: _label }: StageCardSkeletonProps) {
+  return (
+    <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-900 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+        </div>
+        <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+      </div>
+      <div className="mt-3 space-y-3">
+        <div className="h-4 w-1/4 bg-slate-200 dark:bg-slate-700 rounded" />
+        <div className="h-4 w-1/3 bg-slate-200 dark:bg-slate-700 rounded" />
+        <div className="h-20 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+      </div>
+    </div>
+  );
+}
+
+interface StageCardProps {
+  stage: StageEvent;
+  loading?: boolean;
+}
+
+export function StageCard({ stage, loading = false }: StageCardProps) {
   const label = STAGE_LABELS[stage.stage] ?? stage.stage;
   const hasCandidates = stage.candidates.length > 0;
   const context = typeof stage.output.context === 'string' ? stage.output.context : '';
   const answer = typeof stage.output.answer === 'string' ? stage.output.answer : '';
   const rewritten = typeof stage.output.rewritten === 'string' ? stage.output.rewritten : '';
 
+  if (loading) {
+    return <StageCardSkeleton label={label} />;
+  }
+
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-900">
+    <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-900 transition-shadow hover:shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="font-medium text-sm text-slate-800 dark:text-slate-100">{label}</span>
           {stage.status === 'error' && (
-            <span className="text-xs text-rose-600 dark:text-rose-400">error</span>
+            <span className="inline-flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 font-medium">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Error
+            </span>
           )}
         </div>
-        <span className="text-xs text-slate-400 tabular-nums">{stage.duration_ms.toFixed(2)} ms</span>
+        <span className="text-xs text-slate-400 tabular-nums font-mono">{stage.duration_ms.toFixed(2)} ms</span>
       </div>
 
       {stage.error && (
-        <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{stage.error}</p>
+        <div className="mt-2 p-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded text-xs text-rose-700 dark:text-rose-300" role="alert">
+          <div className="font-medium mb-0.5">Error:</div>
+          <div>{stage.error}</div>
+        </div>
       )}
 
       {/* Stage-specific outputs */}
@@ -53,7 +109,9 @@ export function StageCard({ stage }: { stage: StageEvent }) {
       {rewritten && (
         <div className="mt-2">
           <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Rewritten query</div>
-          <p className="text-sm font-mono text-slate-700 dark:text-slate-300">{rewritten}</p>
+          <div className="text-sm font-mono text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded p-2 border border-slate-200 dark:border-slate-700">
+            {rewritten}
+          </div>
         </div>
       )}
       {hasCandidates && <ChunkTable candidates={stage.candidates} />}

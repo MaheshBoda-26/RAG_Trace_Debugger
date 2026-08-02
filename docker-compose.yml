@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Backend API service
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: rag-trace-debugger-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      # Data persistence
+      - ./server/data:/app/data
+      # Development hot-reload (optional - comment out for production)
+      - ./server:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Frontend service - serves static files and proxies /api to backend
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: rag-trace-debugger-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      # Development hot-reload (optional - comment out for production)
+      - ./web:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  # Named volumes for data persistence
+  corpus_data:
+  traces_data:
+  eval_data:
+  embeddings_cache:
+
+networks:
+  default:
+    name: rag-trace-debugger-network

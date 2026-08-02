@@ -25,3 +25,9 @@ server/data/embeddings_cache/
 .DS_Store
 .idea/
 .vscode/
+
+.venv312/
+.venv/
+venv/
+__pycache__/
+*.pyc
