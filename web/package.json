@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^6.26.2",
+    "framer-motion": "^11.3.31"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
