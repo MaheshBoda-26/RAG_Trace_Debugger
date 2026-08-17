@@ -81,16 +81,16 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+    <div className="min-h-screen bg-bg text-text">
+      <header className="border-b border-border bg-bg-elevated">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold">RAG Trace Debugger</h1>
             {health && (
               <span
                 className={`text-xs px-2 py-0.5 rounded-full border ${health.gemini_enabled
-                    ? 'border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300'
-                    : 'border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300'
+                    ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                    : 'border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10'
                   }`}
               >
                 {health.gemini_enabled ? 'Gemini live' : 'mock fallback'}
@@ -103,8 +103,8 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
                 key={t}
                 onClick={() => setTab(t)}
                 className={`text-sm px-3 py-1 rounded-md transition-colors capitalize ${tab === t
-                    ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-primary text-white font-medium'
+                    : 'text-text-muted hover:text-text hover:bg-bg-elevated'
                   }`}
               >
                 {t === 'debugger' ? 'Debugger' : t === 'eval' ? 'Evaluation' : 'Corpus'}
@@ -125,8 +125,8 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
           <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
             {/* Left rail */}
             <aside className="space-y-3">
-              <form onSubmit={runQuery} className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-900 space-y-2">
-                <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+              <form onSubmit={runQuery} className="border border-border rounded-lg p-3 bg-bg-elevated space-y-2">
+                <label className="block text-xs font-medium text-text-muted">
                   Run a query
                 </label>
                 <textarea
@@ -134,24 +134,24 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
                   onChange={(e) => setQueryText(e.target.value)}
                   placeholder="Ask something about Northwind SaaS…"
                   rows={2}
-                  className="w-full text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  className="w-full text-sm rounded border border-border bg-bg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary text-text placeholder:text-text-dim"
                 />
                 <input
                   value={queryTerms}
                   onChange={(e) => setQueryTerms(e.target.value)}
                   placeholder="key terms (comma-separated, optional)"
-                  className="w-full text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  className="w-full text-xs rounded border border-border bg-bg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary text-text placeholder:text-text-dim"
                 />
                 <button
                   type="submit"
                   disabled={running}
-                  className="w-full text-sm px-3 py-1.5 rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 disabled:opacity-50"
+                  className="w-full text-sm px-3 py-1.5 rounded bg-primary text-white hover:bg-primary-hover disabled:opacity-50 font-medium transition-colors"
                 >
                   {running ? 'Running…' : 'Run query'}
                 </button>
               </form>
 
-              <div className="border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 overflow-hidden h-[60vh]">
+              <div className="border border-border rounded-lg bg-bg-elevated overflow-hidden h-[60vh]">
                 <QueryList
                   traces={traces}
                   selectedId={selectedId}
@@ -163,7 +163,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
 
               <button
                 onClick={onClear}
-                className="w-full text-xs text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
+                className="w-full text-xs text-text-dim hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
               >
                 Clear all traces
               </button>
@@ -174,13 +174,13 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
               {trace ? (
                 <div>
                   <div className="mb-3">
-                    <div className="font-mono text-xs text-slate-400 mb-0.5">{trace.query_id}</div>
-                    <h2 className="text-base font-medium text-slate-800 dark:text-slate-100">{trace.query}</h2>
+                    <div className="font-mono text-xs text-text-dim mb-0.5">{trace.query_id}</div>
+                    <h2 className="text-base font-medium text-text">{trace.query}</h2>
                   </div>
                   <TraceTimeline trace={trace} />
                 </div>
               ) : (
-                <div className="border border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-12 text-center text-slate-500 dark:text-slate-400">
+                <div className="border border-dashed border-border rounded-lg p-12 text-center text-text-dim">
                   Select a traced query or run a new one to see its stage-by-stage timeline.
                 </div>
               )}
@@ -197,7 +197,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
         {tab === 'corpus' && <CorpusView />}
       </main>
 
-      <footer className="max-w-7xl mx-auto px-4 py-4 text-center text-xs text-slate-400">
+      <footer className="max-w-7xl mx-auto px-4 py-4 text-center text-xs text-text-dim">
         RAG Trace Debugger · diagnostic tool, not a fix-it tool · localizes failure, does not auto-resolve
       </footer>
     </div>
@@ -211,21 +211,21 @@ function CorpusView() {
     api.getCorpus().then(setCorpus).catch(() => { });
   }, []);
 
-  if (!corpus) return <p className="text-sm text-slate-500">Loading corpus…</p>;
+  if (!corpus) return <p className="text-sm text-text-dim">Loading corpus…</p>;
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-600 dark:text-slate-400">
+      <p className="text-sm text-text-muted">
         {corpus.doc_count} docs · {corpus.chunk_count} chunks
       </p>
       {corpus.docs.map((doc) => (
-        <div key={doc.doc_id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-900">
-          <h3 className="text-sm font-mono font-medium text-slate-800 dark:text-slate-100 mb-2">{doc.doc_id}</h3>
+        <div key={doc.doc_id} className="border border-border rounded-lg p-3 bg-bg-elevated">
+          <h3 className="text-sm font-mono font-medium text-text mb-2">{doc.doc_id}</h3>
           <div className="space-y-2">
             {doc.chunks.map((c: any) => (
               <div key={c.chunk_id} className="text-xs">
-                <div className="font-mono text-slate-400 mb-0.5">{c.chunk_id}</div>
-                <pre className="whitespace-pre-wrap font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded p-2">
+                <div className="font-mono text-text-dim mb-0.5">{c.chunk_id}</div>
+                <pre className="whitespace-pre-wrap font-mono text-text-muted bg-bg border border-border rounded p-2">
                   {c.text}
                 </pre>
               </div>

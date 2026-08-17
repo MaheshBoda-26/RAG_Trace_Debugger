@@ -174,29 +174,62 @@ export function Home() {
             </p>
           </header>
 
-          <div className="max-w-4xl mx-auto">
-            <pre className="code-block"><code>{`from server.trace import tracer, localize_trace, store
+          <div className="max-w-5xl mx-auto py-8">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
+              {/* Stage 1 */}
+              <div className="flex flex-col items-center bg-bg-elevated border border-border rounded-xl p-4 text-center hover:border-primary/50 transition-colors shadow-card relative">
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm mb-3">1</div>
+                <h4 className="text-sm font-semibold text-text mb-1">Query Rewrite</h4>
+                <p className="text-xs text-text-dim leading-relaxed">Raw Query &rarr; Cleaned Search Query</p>
+                <div className="hidden md:block absolute -right-3.5 top-1/2 -translate-y-1/2 text-primary font-bold text-lg z-10">&rarr;</div>
+              </div>
 
-ctx = tracer.start(query_id="q01", query=q, key_terms=["50", "wallets"])
+              {/* Stage 2 */}
+              <div className="flex flex-col items-center bg-bg-elevated border border-border rounded-xl p-4 text-center hover:border-primary/50 transition-colors shadow-card relative">
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm mb-3">2</div>
+                <h4 className="text-sm font-semibold text-text mb-1">Retrieval</h4>
+                <p className="text-xs text-text-dim leading-relaxed">Dense + Keyword (BM25) Candidate Search</p>
+                <div className="hidden md:block absolute -right-3.5 top-1/2 -translate-y-1/2 text-primary font-bold text-lg z-10">&rarr;</div>
+              </div>
 
-with ctx.stage("retrieval", input={"query": q}) as s:
-    candidates = retrieve(q)
-    s.set(candidates=candidates)          # All chunks + scores
+              {/* Stage 3 */}
+              <div className="flex flex-col items-center bg-bg-elevated border border-border rounded-xl p-4 text-center hover:border-primary/50 transition-colors shadow-card relative">
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm mb-3">3</div>
+                <h4 className="text-sm font-semibold text-text mb-1">Rerank</h4>
+                <p className="text-xs text-text-dim leading-relaxed">Scores Candidates, Prunes Top-K Chunks</p>
+                <div className="hidden md:block absolute -right-3.5 top-1/2 -translate-y-1/2 text-primary font-bold text-lg z-10">&rarr;</div>
+              </div>
 
-with ctx.stage("rerank", input={"top_k": 5}) as s:
-    kept, dropped = rerank(candidates)
-    s.set(kept=kept, dropped=dropped)     # Kept vs dropped
+              {/* Stage 4 */}
+              <div className="flex flex-col items-center bg-bg-elevated border border-border rounded-xl p-4 text-center hover:border-primary/50 transition-colors shadow-card relative">
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm mb-3">4</div>
+                <h4 className="text-sm font-semibold text-text mb-1">Context Assembly</h4>
+                <p className="text-xs text-text-dim leading-relaxed">Builds Clean Prompts &amp; Context String</p>
+                <div className="hidden md:block absolute -right-3.5 top-1/2 -translate-y-1/2 text-primary font-bold text-lg z-10">&rarr;</div>
+              </div>
 
-with ctx.stage("assembly") as s:
-    s.set(output={"context": ctx_str})    # Exact final context
+              {/* Stage 5 */}
+              <div className="flex flex-col items-center bg-bg-elevated border border-border rounded-xl p-4 text-center hover:border-primary/50 transition-colors shadow-card">
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm mb-3">5</div>
+                <h4 className="text-sm font-semibold text-text mb-1">Generation</h4>
+                <p className="text-xs text-text-dim leading-relaxed">LLM Infers and Produces Answer</p>
+              </div>
+            </div>
 
-with ctx.stage("generation") as s:
-    s.set(output={"answer": ans})         # Raw generated answer
-
-trace = ctx.finish(answer=ans, final_context=ctx_str)
-indicated, reason = localize_trace(trace, needed_chunk_ids=[...], key_terms=[...])
-trace.indicated_failure, trace.failure_reason = indicated, reason
-store.save(trace)`}</code></pre>
+            {/* Collecting Flow Visual */}
+            <div className="mt-8 flex flex-col items-center text-center bg-gradient-to-b from-primary/10 to-transparent border border-primary/20 rounded-2xl p-6 max-w-2xl mx-auto">
+              <svg className="w-6 h-6 text-primary animate-bounce mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+              <h4 className="text-base font-semibold text-text mb-1">Unified Trace Store</h4>
+              <p className="text-sm text-text-muted mb-4 max-w-md">
+                Every stage hooks into the collector synchronously. Output is saved as a single correlation JSON file per query.
+              </p>
+              <div className="flex items-center gap-3 bg-bg-elevated border border-border rounded-lg px-4 py-2 font-mono text-xs text-text-muted">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                data/traces/q01.json
+              </div>
+            </div>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3 text-center">

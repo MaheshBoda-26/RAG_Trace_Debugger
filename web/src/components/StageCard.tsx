@@ -10,13 +10,13 @@ function JsonView({ data }: JsonViewProps) {
   if (!data || Object.keys(data).length === 0) return null;
   return (
     <details className="mt-2 group">
-      <summary className="text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer flex items-center gap-1.5 hover:text-slate-700 dark:hover:text-slate-200">
+      <summary className="text-xs font-medium text-text-dim cursor-pointer flex items-center gap-1.5 hover:text-text-muted">
         <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
         Input data
       </summary>
-      <pre className="mt-2 text-xs bg-slate-50 dark:bg-slate-800/60 rounded p-2 overflow-x-auto text-slate-600 dark:text-slate-300 max-h-48 overflow-y-auto">
+      <pre className="mt-2 text-xs bg-bg border border-border rounded p-2 overflow-x-auto text-text-muted max-h-48 overflow-y-auto">
         {JSON.stringify(data, null, 2)}
       </pre>
     </details>
@@ -32,8 +32,8 @@ function TextBlock({ label, text }: TextBlockProps) {
   if (!text) return null;
   return (
     <div className="mt-2">
-      <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{label}</div>
-      <div className="text-xs font-mono whitespace-pre-wrap break-words bg-slate-50 dark:bg-slate-800/60 rounded p-2 text-slate-700 dark:text-slate-300 max-h-64 overflow-y-auto border border-slate-200 dark:border-slate-700">
+      <div className="text-xs font-medium text-text-dim mb-1">{label}</div>
+      <div className="text-xs font-mono whitespace-pre-wrap break-words bg-bg rounded p-2 text-text-muted max-h-64 overflow-y-auto border border-border">
         {text}
       </div>
     </div>
@@ -46,17 +46,17 @@ interface StageCardSkeletonProps {
 
 function StageCardSkeleton({ label: _label }: StageCardSkeletonProps) {
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-900 animate-pulse">
+    <div className="border border-border rounded-lg p-3 bg-bg-elevated animate-pulse">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+          <div className="h-5 w-24 bg-border rounded" />
         </div>
-        <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+        <div className="h-4 w-20 bg-border rounded" />
       </div>
       <div className="mt-3 space-y-3">
-        <div className="h-4 w-1/4 bg-slate-200 dark:bg-slate-700 rounded" />
-        <div className="h-4 w-1/3 bg-slate-200 dark:bg-slate-700 rounded" />
-        <div className="h-20 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+        <div className="h-4 w-1/4 bg-border rounded" />
+        <div className="h-4 w-1/3 bg-border rounded" />
+        <div className="h-20 w-full bg-border rounded" />
       </div>
     </div>
   );
@@ -79,10 +79,10 @@ export function StageCard({ stage, loading = false }: StageCardProps) {
   }
 
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-900 transition-shadow hover:shadow-sm">
+    <div className="border border-border rounded-lg p-3 bg-bg-elevated transition-shadow hover:shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-sm text-slate-800 dark:text-slate-100">{label}</span>
+          <span className="font-medium text-sm text-text">{label}</span>
           {stage.status === 'error' && (
             <span className="inline-flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 font-medium">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -92,7 +92,7 @@ export function StageCard({ stage, loading = false }: StageCardProps) {
             </span>
           )}
         </div>
-        <span className="text-xs text-slate-400 tabular-nums font-mono">{stage.duration_ms.toFixed(2)} ms</span>
+        <span className="text-xs text-text-dim tabular-nums font-mono">{stage.duration_ms.toFixed(2)} ms</span>
       </div>
 
       {stage.error && (
@@ -108,8 +108,8 @@ export function StageCard({ stage, loading = false }: StageCardProps) {
       )}
       {rewritten && (
         <div className="mt-2">
-          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Rewritten query</div>
-          <div className="text-sm font-mono text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded p-2 border border-slate-200 dark:border-slate-700">
+          <div className="text-xs font-medium text-text-dim mb-1">Rewritten query</div>
+          <div className="text-sm font-mono text-text-muted bg-bg rounded p-2 border border-border">
             {rewritten}
           </div>
         </div>

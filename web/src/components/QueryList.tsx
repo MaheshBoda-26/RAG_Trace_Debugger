@@ -13,11 +13,11 @@ const FILTERS: { label: string; value: FailureStage | 'all' }[] = [
 function QueryListSkeleton() {
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b border-slate-200 dark:border-slate-700 animate-pulse">
-        <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
+      <div className="p-3 border-b border-border animate-pulse">
+        <div className="h-5 w-32 bg-border rounded mb-2" />
         <div className="flex flex-wrap gap-1">
           {[...Array(7)].map((_, i) => (
-            <div key={i} className="h-6 w-20 bg-slate-200 dark:bg-slate-700 rounded-full" />
+            <div key={i} className="h-6 w-20 bg-border rounded-full" />
           ))}
         </div>
       </div>
@@ -25,13 +25,13 @@ function QueryListSkeleton() {
         <ul>
           {[...Array(6)].map((_, i) => (
             <li key={i}>
-              <div className="w-full px-3 py-2.5 border-b border-slate-100 dark:border-slate-800 animate-pulse">
+              <div className="w-full px-3 py-2.5 border-b border-border animate-pulse">
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
-                  <div className="h-6 w-24 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                  <div className="h-4 w-20 bg-border rounded" />
+                  <div className="h-6 w-24 bg-border rounded-full" />
                 </div>
-                <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded" />
-                <div className="mt-1 h-4 w-3/4 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="h-4 w-full bg-border rounded" />
+                <div className="mt-1 h-4 w-3/4 bg-border rounded" />
               </div>
             </li>
           ))}
@@ -64,8 +64,8 @@ export function QueryList({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b border-slate-200 dark:border-slate-700">
-        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2">
+      <div className="p-3 border-b border-border">
+        <h2 className="text-sm font-semibold text-text mb-2">
           Traced Queries ({traces.length})
         </h2>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Filter by failure stage">
@@ -73,10 +73,10 @@ export function QueryList({
             <button
               key={f.value}
               onClick={() => onFilter(f.value)}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${
+              className={`text-xs px-2 py-0.5 rounded-full border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-bg ${
                 filter === f.value
-                  ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100 shadow-sm'
-                  : 'bg-transparent text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-primary text-white border-primary shadow-sm'
+                  : 'bg-transparent text-text-muted border-border hover:bg-bg-elevated hover:text-text'
               }`}
               aria-pressed={filter === f.value}
             >
@@ -89,10 +89,10 @@ export function QueryList({
       <div className="flex-1 overflow-y-auto">
         {traces.length === 0 ? (
           <div className="p-4 text-center">
-            <svg className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg className="w-12 h-12 mx-auto text-text-dim mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-text-dim">
               No traces yet. Run the eval or submit a query.
             </p>
           </div>
@@ -102,20 +102,20 @@ export function QueryList({
               <li key={t.query_id}>
                 <button
                   onClick={() => onSelect(t.query_id)}
-                  className={`w-full text-left px-3 py-2.5 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-inset ${
+                  className={`w-full text-left px-3 py-2.5 border-b border-border hover:bg-bg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset ${
                     selectedId === t.query_id
-                      ? 'bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-300 dark:ring-slate-600'
+                      ? 'bg-bg ring-1 ring-primary/30'
                       : ''
                   }`}
                   role="option"
                   aria-selected={selectedId === t.query_id}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-mono text-xs text-slate-400 truncate max-w-[120px]">{t.query_id}</span>
+                    <span className="font-mono text-xs text-text-dim truncate max-w-[120px]">{t.query_id}</span>
                     <FailureBadge stage={t.indicated_failure} size="sm" />
                   </div>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2">{t.query}</p>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
+                  <p className="text-sm text-text-muted line-clamp-2">{t.query}</p>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-text-dim">
                     <span className="font-mono tabular-nums">{t.stage_count} stages</span>
                     <span>·</span>
                     <span className="font-mono tabular-nums">{t.total_duration_ms.toFixed(0)} ms</span>

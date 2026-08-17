@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 
 interface TraceStage {
   name: string;
@@ -208,87 +208,87 @@ export function LandingTraceTimeline() {
           aria-label="Pipeline stages"
         >
           {demoStages.map((stage, index) => (
-            <motion.article
-              key={stage.name}
-              variants={itemVariants}
-              className={`trace-stage ${selectedIndex === index ? 'active' : ''}`}
-              role="listitem"
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setSelectedIndex(selectedIndex === index ? null : index);
-                }
-              }}
-              whileHover={{ y: -4, transition: { duration: 0.15 } }}
-            >
-              <div
-                className="trace-stage-icon"
-                style={{
-                  backgroundColor: `var(--color-${statusConfig[stage.status].className.replace('badge-', '')}/15)`,
-                  color: `var(--color-${statusConfig[stage.status].className.replace('badge-', '')})`,
+            <Fragment key={stage.name}>
+              <motion.article
+                variants={itemVariants}
+                className={`trace-stage ${selectedIndex === index ? 'active' : ''}`}
+                role="listitem"
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => setHoveredIndex(null)}
+                onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedIndex(selectedIndex === index ? null : index);
+                  }
                 }}
+                whileHover={{ y: -4, transition: { duration: 0.15 } }}
               >
-                {stageIcons[stage.icon]}
-              </div>
-
-              <h4 className="trace-stage-name">{stage.name}</h4>
-
-              <div className="trace-stage-metric font-mono">
-                {stage.latency}ms
-              </div>
-
-              <div className="trace-stage-status">
-                <span
-                  className={`badge ${statusConfig[stage.status].className}`}
+                <div
+                  className="trace-stage-icon"
+                  style={{
+                    backgroundColor: `var(--color-${statusConfig[stage.status].className.replace('badge-', '')}/15)`,
+                    color: `var(--color-${statusConfig[stage.status].className.replace('badge-', '')})`,
+                  }}
                 >
-                  {statusIcons[statusConfig[stage.status].icon as keyof typeof statusIcons]}
-                  {statusConfig[stage.status].label}
-                </span>
-              </div>
+                  {stageIcons[stage.icon]}
+                </div>
 
-              {/* Detail Tooltip on Hover/Select */}
-              <AnimatePresence>
-                {(selectedIndex === index || hoveredIndex === index) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-72 z-20
-                      bg-surface border border-border rounded-xl p-3 shadow-lg
-                      animate-fade-in-up"
-                    role="tooltip"
+                <h4 className="trace-stage-name">{stage.name}</h4>
+
+                <div className="trace-stage-metric font-mono">
+                  {stage.latency}ms
+                </div>
+
+                <div className="trace-stage-status">
+                  <span
+                    className={`badge ${statusConfig[stage.status].className}`}
                   >
-                    <div className="font-mono text-xs text-text-muted mb-2">
-                      {stage.name} Details
-                    </div>
-                    <dl className="space-y-1.5 text-sm">
-                      {Object.entries(stage.details).map(([key, value]) => (
-                        <div key={key} className="flex justify-between gap-4">
-                          <dt className="text-text-dim capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</dt>
-                          <dd className="font-mono text-text text-right max-w-[60%] truncate">
-                            {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.article>
-          ))}
+                    {statusIcons[statusConfig[stage.status].icon as keyof typeof statusIcons]}
+                    {statusConfig[stage.status].label}
+                  </span>
+                </div>
 
-          {/* Connectors */}
-          {demoStages.slice(0, -1).map((_, index) => (
-            <motion.div key={`connector-${index}`} variants={connectorVariants} className="trace-connector">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </motion.div>
+                {/* Detail Tooltip on Hover/Select */}
+                <AnimatePresence>
+                  {(selectedIndex === index || hoveredIndex === index) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-72 z-20
+                        bg-surface border border-border rounded-xl p-3 shadow-lg
+                        animate-fade-in-up"
+                      role="tooltip"
+                    >
+                      <div className="font-mono text-xs text-text-muted mb-2">
+                        {stage.name} Details
+                      </div>
+                      <dl className="space-y-1.5 text-sm">
+                        {Object.entries(stage.details).map(([key, value]) => (
+                          <div key={key} className="flex justify-between gap-4">
+                            <dt className="text-text-dim capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</dt>
+                            <dd className="font-mono text-text text-right max-w-[60%] truncate">
+                              {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.article>
+
+              {index < demoStages.length - 1 && (
+                <motion.div variants={connectorVariants} className="trace-connector">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                    <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </motion.div>
+              )}
+            </Fragment>
           ))}
         </motion.div>
 

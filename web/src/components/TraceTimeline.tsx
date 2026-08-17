@@ -10,25 +10,25 @@ function TimelineSkeleton({ stages = 5 }: TimelineSkeletonProps) {
   return (
     <div className="space-y-3" role="status" aria-label="Loading trace timeline">
       {/* Failure banner skeleton */}
-      <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 bg-white dark:bg-slate-900 animate-pulse">
+      <div className="border border-border rounded-lg p-4 bg-bg-elevated animate-pulse">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
-          <div className="h-6 w-24 bg-slate-200 dark:bg-slate-700 rounded-full" />
-          <div className="h-4 w-48 ml-auto bg-slate-200 dark:bg-slate-700 rounded" />
+          <div className="h-5 w-32 bg-border rounded" />
+          <div className="h-6 w-24 bg-border rounded-full" />
+          <div className="h-4 w-48 ml-auto bg-border rounded" />
         </div>
-        <div className="mt-2 h-4 w-3/4 bg-slate-200 dark:bg-slate-700 rounded" />
-        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3 flex-wrap">
-          <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
-          <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700 rounded-full" />
-          <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+        <div className="mt-2 h-4 w-3/4 bg-border rounded" />
+        <div className="mt-3 pt-3 border-t border-border flex items-center gap-3 flex-wrap">
+          <div className="h-4 w-20 bg-border rounded" />
+          <div className="h-6 w-20 bg-border rounded-full" />
+          <div className="h-4 w-32 bg-border rounded" />
         </div>
       </div>
 
       {/* Stage timeline skeleton */}
       {Array.from({ length: stages }, (_, i) => (
         <div key={i} className="relative pl-6">
-          <div className="absolute left-0 top-3 w-2.5 h-2.5 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
-          <div className="absolute left-[4.5px] top-6 bottom-0 w-px bg-slate-200 dark:bg-slate-700" />
+          <div className="absolute left-0 top-3 w-2.5 h-2.5 rounded-full border-2 border-border bg-bg" />
+          <div className="absolute left-[4.5px] top-6 bottom-0 w-px bg-border" />
           <StageCard
             stage={{
               stage: STAGE_ORDER[i % STAGE_ORDER.length] as StageName,
@@ -63,19 +63,19 @@ export function TraceTimeline({ trace, loading = false }: { trace: Trace; loadin
   return (
     <div className="space-y-3" role="region" aria-label="Trace timeline">
       {/* Failure banner (FR7) */}
-      <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 bg-white dark:bg-slate-900 transition-colors">
+      <div className="border border-border rounded-lg p-4 bg-bg-elevated transition-colors">
         <div className="flex items-center gap-3 flex-wrap">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Indicated failure</h3>
+          <h3 className="text-sm font-semibold text-text">Indicated failure</h3>
           <FailureBadge stage={indicated} size="md" />
-          <span className="text-xs text-slate-400 ml-auto tabular-nums font-mono">
+          <span className="text-xs text-text-dim ml-auto tabular-nums font-mono">
             total {trace.total_duration_ms.toFixed(2)} ms · overhead {trace.trace_overhead_ms.toFixed(3)} ms
           </span>
         </div>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{trace.failure_reason || 'No failure reason provided'}</p>
+        <p className="mt-2 text-sm text-text-muted">{trace.failure_reason || 'No failure reason provided'}</p>
 
         {trace.ground_truth_failure && (
-          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3 flex-wrap">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Ground truth:</span>
+          <div className="mt-3 pt-3 border-t border-border flex items-center gap-3 flex-wrap">
+            <span className="text-xs font-medium text-text-muted">Ground truth:</span>
             <FailureBadge stage={trace.ground_truth_failure} size="sm" />
             {trace.localization_correct !== null && (
               <span
@@ -106,8 +106,8 @@ export function TraceTimeline({ trace, loading = false }: { trace: Trace; loadin
               }`}
           >
             {/* timeline dot + connector */}
-            <div className="absolute left-0 top-3 w-2.5 h-2.5 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 z-10" />
-            <div className="absolute left-[4.5px] top-6 bottom-0 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="absolute left-0 top-3 w-2.5 h-2.5 rounded-full border-2 border-border bg-bg z-10" />
+            <div className="absolute left-[4.5px] top-6 bottom-0 w-px bg-border" />
             {isIndicated && (
               <div className="absolute -left-0.5 top-0 bottom-0 w-1 rounded-full bg-rose-400 dark:bg-rose-600" />
             )}
