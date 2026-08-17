@@ -7,36 +7,36 @@
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
   /* Colors - Dark Mode (Primary) */
-  --color-bg: #0A0F1A;
-  --color-bg-elevated: #111827;
-  --color-surface: #1E293B;
-  --color-border: #334155;
-  --color-text: #F8FAFC;
-  --color-text-muted: #CBD5E1;
-  --color-text-dim: #64748B;
+  --color-bg: #050505;
+  --color-bg-elevated: #0F0F11;
+  --color-surface: #18181B;
+  --color-border: #27272A;
+  --color-text: #F4F4F5;
+  --color-text-muted: #D4D4D8;
+  --color-text-dim: #71717A;
 
   /* Colors - Light Mode */
-  --color-bg-light: #FFFFFF;
-  --color-bg-elevated-light: #F8FAFC;
+  --color-bg-light: #FAFAFA;
+  --color-bg-elevated-light: #F4F4F5;
   --color-surface-light: #FFFFFF;
-  --color-border-light: #E2E8F0;
-  --color-text-light: #0F172A;
-  --color-text-muted-light: #475569;
-  --color-text-dim-light: #64748B;
+  --color-border-light: #E4E4E7;
+  --color-text-light: #09090B;
+  --color-text-muted-light: #3F3F46;
+  --color-text-dim-light: #71717A;
 
   /* Brand Colors */
-  --color-primary: #2563EB;
-  --color-primary-hover: #1D4ED8;
-  --color-primary-light: #DBEAFE;
-  --color-secondary: #7C3AED;
-  --color-accent-cyan: #06B6D4;
+  --color-primary: #F97316;
+  --color-primary-hover: #EA580C;
+  --color-primary-light: #FFEDD5;
+  --color-secondary: #D97706;
+  --color-accent-cyan: #FB923C;
   --color-accent-orange: #F97316;
 
   /* Semantic Colors */
   --color-success: #22C55E;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
-  --color-info: #0EA5E9;
+  --color-info: #3B82F6;
 
   /* Spacing */
   --space-xs: 4px;
@@ -54,11 +54,11 @@
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-elevated: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
-  --shadow-modal: 0 20px 25px rgba(0,0,0,0.15), 0 10px 10px rgba(0,0,0,0.04);
-  --shadow-floating: 0 25px 50px rgba(0,0,0,0.25);
-  --shadow-glow-primary: 0 4px 20px rgba(37,99,235,0.1);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.1);
+  --shadow-elevated: 0 4px 6px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
+  --shadow-modal: 0 20px 25px rgba(0,0,0,0.3), 0 10px 10px rgba(0,0,0,0.15);
+  --shadow-floating: 0 25px 50px rgba(0,0,0,0.4);
+  --shadow-glow-primary: 0 4px 20px rgba(249,115,22,0.15);
 
   /* Transitions */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);

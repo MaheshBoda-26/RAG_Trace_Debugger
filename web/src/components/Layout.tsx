@@ -48,7 +48,10 @@ export function Layout() {
                 aria-hidden="true"
               >
                 <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" strokeWidth="2" />
-                <path d="M8 16h16M16 8v16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M8 22l8-12 8 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="8" cy="22" r="2" fill="currentColor" />
+                <circle cx="16" cy="10" r="2" fill="currentColor" />
+                <circle cx="24" cy="22" r="2" fill="currentColor" />
               </svg>
               <span className="font-display font-bold text-xl md:text-2xl tracking-tight">
                 RAG Trace Debugger
@@ -126,7 +129,10 @@ export function Layout() {
               <Link to="/" className="flex items-center gap-2 mb-4" aria-label="RAG Trace Debugger Home">
                 <svg className="w-8 h-8 text-primary" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                   <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" strokeWidth="2" />
-                  <path d="M8 16h16M16 8v16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M8 22l8-12 8 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="8" cy="22" r="2" fill="currentColor" />
+                  <circle cx="16" cy="10" r="2" fill="currentColor" />
+                  <circle cx="24" cy="22" r="2" fill="currentColor" />
                 </svg>
                 <span className="font-display font-bold text-xl tracking-tight">RAG Trace Debugger</span>
               </Link>
