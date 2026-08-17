@@ -213,8 +213,6 @@ export function LandingTraceTimeline() {
                 variants={itemVariants}
                 className={`trace-stage ${selectedIndex === index ? 'active' : ''}`}
                 role="listitem"
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
                 onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -223,7 +221,6 @@ export function LandingTraceTimeline() {
                     setSelectedIndex(selectedIndex === index ? null : index);
                   }
                 }}
-                whileHover={{ y: -4, transition: { duration: 0.15 } }}
               >
                 <div
                   className="trace-stage-icon"
@@ -250,15 +247,15 @@ export function LandingTraceTimeline() {
                   </span>
                 </div>
 
-                {/* Detail Tooltip on Hover/Select */}
+                {/* Detail Tooltip on Select */}
                 <AnimatePresence>
-                  {(selectedIndex === index || hoveredIndex === index) && (
+                  {selectedIndex === index && (
                     <motion.div
-                      initial={{ opacity: 0, y: 8 }}
+                      initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
+                      exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-72 z-20
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-72 z-20
                         bg-surface border border-border rounded-xl p-3 shadow-lg
                         animate-fade-in-up"
                       role="tooltip"

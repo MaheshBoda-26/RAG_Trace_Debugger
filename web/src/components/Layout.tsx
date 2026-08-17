@@ -18,6 +18,7 @@ export function Layout() {
 
   const navLinks = [
     { path: '/', label: 'Home' },
+    { path: '/debugger', label: 'Dashboard' },
     { path: '/features', label: 'Features' },
     { path: '/about', label: 'About' },
   ];
@@ -69,9 +70,6 @@ export function Layout() {
                   {link.label}
                 </Link>
               ))}
-              <Link to="/debugger" className="btn btn-primary">
-                Open Dashboard
-              </Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -107,9 +105,6 @@ export function Layout() {
                     {link.label}
                   </Link>
                 ))}
-                <Link to="/debugger" className="btn btn-primary mt-2">
-                  Open Dashboard
-                </Link>
               </div>
             </div>
           )}
@@ -122,8 +117,8 @@ export function Layout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-bg-elevated/50">
-        <div className="container py-12 md:py-16">
+      <footer className="-mt-8 md:-mt-12 border-t border-border bg-bg-elevated/50">
+        <div className="container pt-24 pb-20 md:pt-28 md:pb-24">
           <div className="grid gap-8 md:grid-cols-4">
             <div className="md:col-span-2">
               <Link to="/" className="flex items-center gap-2 mb-4" aria-label="RAG Trace Debugger Home">
@@ -168,8 +163,11 @@ export function Layout() {
               </ul>
             </nav>
           </div>
+        </div>
 
-          <div className="mt-10 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* Full-width border section */}
+        <div className="border-t border-border">
+          <div className="container py-12 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-text-dim text-sm">
               RAG Trace Debugger · Diagnostic tool, not a fix-it tool · Localizes failure, does not auto-resolve
             </p>

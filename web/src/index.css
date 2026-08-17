@@ -490,12 +490,6 @@ a:hover {
   }
 }
 
-.trace-stage:hover {
-  transform: translateY(-4px);
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-glow-primary);
-  z-index: 10;
-}
 
 .trace-stage.active {
   border-color: var(--color-primary);
