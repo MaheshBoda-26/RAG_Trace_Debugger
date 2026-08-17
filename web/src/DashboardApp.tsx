@@ -33,7 +33,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
   }, [filter, selectedId]);
 
   useEffect(() => {
-    api.health().then(setHealth).catch(() => {});
+    api.health().then(setHealth).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -85,14 +85,13 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold">RAG-ger</h1>
+            <h1 className="text-lg font-semibold">RAG Trace Debugger</h1>
             {health && (
               <span
-                className={`text-xs px-2 py-0.5 rounded-full border ${
-                  health.gemini_enabled
+                className={`text-xs px-2 py-0.5 rounded-full border ${health.gemini_enabled
                     ? 'border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300'
                     : 'border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300'
-                }`}
+                  }`}
               >
                 {health.gemini_enabled ? 'Gemini live' : 'mock fallback'}
               </span>
@@ -103,11 +102,10 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`text-sm px-3 py-1 rounded-md transition-colors capitalize ${
-                  tab === t
+                className={`text-sm px-3 py-1 rounded-md transition-colors capitalize ${tab === t
                     ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                  }`}
               >
                 {t === 'debugger' ? 'Debugger' : t === 'eval' ? 'Evaluation' : 'Corpus'}
               </button>
@@ -200,7 +198,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
       </main>
 
       <footer className="max-w-7xl mx-auto px-4 py-4 text-center text-xs text-slate-400">
-        RAG-ger · diagnostic tool, not a fix-it tool · localizes failure, does not auto-resolve
+        RAG Trace Debugger · diagnostic tool, not a fix-it tool · localizes failure, does not auto-resolve
       </footer>
     </div>
   );
@@ -210,7 +208,7 @@ function CorpusView() {
   const [corpus, setCorpus] = useState<{ doc_count: number; chunk_count: number; docs: any[] } | null>(null);
 
   useEffect(() => {
-    api.getCorpus().then(setCorpus).catch(() => {});
+    api.getCorpus().then(setCorpus).catch(() => { });
   }, []);
 
   if (!corpus) return <p className="text-sm text-slate-500">Loading corpus…</p>;

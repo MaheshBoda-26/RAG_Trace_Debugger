@@ -79,11 +79,10 @@ export function TraceTimeline({ trace, loading = false }: { trace: Trace; loadin
             <FailureBadge stage={trace.ground_truth_failure} size="sm" />
             {trace.localization_correct !== null && (
               <span
-                className={`inline-flex items-center gap-1 text-xs font-medium ${
-                  trace.localization_correct
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
-                }`}
+                className={`inline-flex items-center gap-1 text-xs font-medium ${trace.localization_correct
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-rose-600 dark:text-rose-400'
+                  }`}
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={trace.localization_correct ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'} />
@@ -103,9 +102,8 @@ export function TraceTimeline({ trace, loading = false }: { trace: Trace; loadin
         return (
           <div
             key={name}
-            className={`relative pl-6 transition-all duration-200 ${
-              isIndicated ? 'ring-2 ring-rose-300 dark:ring-rose-700 rounded-lg' : ''
-            }`}
+            className={`relative pl-6 transition-all duration-200 ${isIndicated ? 'ring-2 ring-rose-300 dark:ring-rose-700 rounded-lg' : ''
+              }`}
           >
             {/* timeline dot + connector */}
             <div className="absolute left-0 top-3 w-2.5 h-2.5 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 z-10" />

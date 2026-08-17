@@ -40,7 +40,7 @@ export function Layout() {
         <nav className="container" aria-label="Main navigation">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2" aria-label="RAG-ger Home">
+            <Link to="/" className="flex items-center gap-2" aria-label="RAG Trace Debugger Home">
               <svg
                 className="w-8 h-8 text-primary"
                 viewBox="0 0 32 32"
@@ -51,7 +51,7 @@ export function Layout() {
                 <path d="M8 16h16M16 8v16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
               <span className="font-display font-bold text-xl md:text-2xl tracking-tight">
-                RAG-ger
+                RAG Trace Debugger
               </span>
             </Link>
 
@@ -123,12 +123,12 @@ export function Layout() {
         <div className="container py-12 md:py-16">
           <div className="grid gap-8 md:grid-cols-4">
             <div className="md:col-span-2">
-              <Link to="/" className="flex items-center gap-2 mb-4" aria-label="RAG-ger Home">
+              <Link to="/" className="flex items-center gap-2 mb-4" aria-label="RAG Trace Debugger Home">
                 <svg className="w-8 h-8 text-primary" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                   <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" strokeWidth="2" />
                   <path d="M8 16h16M16 8v16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
-                <span className="font-display font-bold text-xl tracking-tight">RAG-ger</span>
+                <span className="font-display font-bold text-xl tracking-tight">RAG Trace Debugger</span>
               </Link>
               <p className="text-text-muted max-w-xs text-base leading-relaxed">
                 Diagnostic layer for RAG pipelines. Localizes failure — doesn't auto-fix.
@@ -165,7 +165,7 @@ export function Layout() {
 
           <div className="mt-10 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-text-dim text-sm">
-              RAG-ger · Diagnostic tool, not a fix-it tool · Localizes failure, does not auto-resolve
+              RAG Trace Debugger · Diagnostic tool, not a fix-it tool · Localizes failure, does not auto-resolve
             </p>
             <div className="flex items-center gap-6 text-sm text-text-dim">
               <span>Built with FastAPI + React + TypeScript</span>
