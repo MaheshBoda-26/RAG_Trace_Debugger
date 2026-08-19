@@ -224,7 +224,7 @@ export function LandingTraceTimeline() {
                 <div
                   className="trace-stage-icon"
                   style={{
-                    backgroundColor: `var(--color-${statusConfig[stage.status].className.replace('badge-', '')}/15)`,
+                    backgroundColor: `color-mix(in srgb, var(--color-${statusConfig[stage.status].className.replace('badge-', '')}) 15%, transparent)`,
                     color: `var(--color-${statusConfig[stage.status].className.replace('badge-', '')})`,
                   }}
                 >
@@ -318,7 +318,7 @@ export function LandingTraceTimeline() {
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center"
                     style={{
-                      backgroundColor: `var(--color-${statusConfig[demoStages[selectedIndex].status].className.replace('badge-', '')}/15)`,
+                      backgroundColor: `color-mix(in srgb, var(--color-${statusConfig[demoStages[selectedIndex].status].className.replace('badge-', '')}) 15%, transparent)`,
                       color: `var(--color-${statusConfig[demoStages[selectedIndex].status].className.replace('badge-', '')})`,
                     }}
                   >

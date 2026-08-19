@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import type { EvalResults, FailureStage } from '../types/trace';
 import { FailureBadge } from './FailureBadge';
@@ -65,6 +65,10 @@ export function EvalPanel({ loading: initialLoading = false }: EvalPanelProps = 
   const [results, setResults] = useState<EvalResults | null>(null);
   const [loading, setLoading] = useState(initialLoading);
   const [error, setError] = useState('');
+  useEffect(() => {
+    loadLatest();
+  }, []);
+
 
   async function loadLatest() {
     setLoading(true);

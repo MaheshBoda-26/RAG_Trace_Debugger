@@ -36,7 +36,7 @@ export const api = {
     getJson<TraceSummary[]>(`/api/traces${failure && failure !== 'all' ? `?failure=${failure}` : ''}`),
   getTrace: (id: string) => getJson<Trace>(`/api/traces/${id}`),
   runQuery: (req: QueryRequest) => postJson<Trace>('/api/query', req),
-  clearTraces: () => postJson<{ deleted: number }>('/api/traces', {}), // DELETE
+  clearTraces: () => deleteTraces(),
 
   getCorpus: () => getJson<CorpusResponse>('/api/corpus'),
 

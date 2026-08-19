@@ -61,7 +61,7 @@ export function FailureBadge({
 
   const variantStyles = {
     badge: 'inline-flex items-center rounded-full border font-medium',
-    chip: 'inline-flex items-center rounded-lg border font-medium px-3 py-1.5',
+    chip: 'inline-flex items-center rounded-lg border font-medium',
   };
 
   return (

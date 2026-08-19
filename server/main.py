@@ -8,6 +8,8 @@ from __future__ import annotations
 import logging
 import sys
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -24,8 +26,19 @@ logging.basicConfig(
 log = logging.getLogger("rag_trace_debugger")
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    ensure_dirs()
+    comps = get_components()
+    log.info(
+        'event="startup" gemini_enabled=%s docs=%d chunks=%d',
+        has_gemini(), len(comps.corpus.doc_ids()), len(comps.corpus.chunks),
+    )
+    yield
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="RAG Trace Debugger", version="0.1.0")
+    app = FastAPI(title="RAG Trace Debugger", version="0.1.0", lifespan=lifespan)
 
     # CORS: the Vite dev server runs on :5173 and proxies /api here in dev,
     # but we allow localhost origins directly too for flexibility.
@@ -36,14 +49,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    @app.on_event("startup")
-    def _startup() -> None:
-        ensure_dirs()
-        comps = get_components()
-        log.info(
-            'event="startup" gemini_enabled=%s docs=%d chunks=%d',
-            has_gemini(), len(comps.corpus.doc_ids()), len(comps.corpus.chunks),
-        )
 
     @app.get("/api/health")
     def health():
