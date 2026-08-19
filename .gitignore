@@ -31,3 +31,5 @@ server/data/embeddings_cache/
 venv/
 __pycache__/
 *.pyc
+.vercel
+.env*

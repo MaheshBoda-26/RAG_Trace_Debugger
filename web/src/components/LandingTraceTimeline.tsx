@@ -139,7 +139,6 @@ const statusIcons = {
 
 export function LandingTraceTimeline() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const containerVariants = {
     hidden: { opacity: 0 },
