@@ -1,4 +1,4 @@
-import type { HealResponse, Trace } from '../types/trace';
+import type { FailureStage, HealResponse, Trace } from '../types/trace';
 import { FailureBadge } from './FailureBadge';
 import { STAGE_ORDER, STAGE_LABELS, type StageName } from '../types/trace';
 
@@ -188,14 +188,14 @@ export function ComparisonView({ data }: { data: HealResponse }) {
         <div className="border border-border rounded-lg p-3 bg-bg-elevated space-y-2">
           <SignalSummary signals={adjustment.signals_before} title="Before (original)" />
           <div className="flex items-center gap-2 text-xs text-text-muted">
-            <FailureBadge stage={adjustment.original_failure as never} size="sm" />
+            <FailureBadge stage={adjustment.original_failure as FailureStage} size="sm" />
             <span className="font-mono text-text-dim">{original.query_id}</span>
           </div>
         </div>
         <div className="border border-border rounded-lg p-3 bg-bg-elevated space-y-2">
           <SignalSummary signals={adjustment.signals_after} title="After (healed)" />
           <div className="flex items-center gap-2 text-xs text-text-muted">
-            <FailureBadge stage={adjustment.healed_failure as never} size="sm" />
+            <FailureBadge stage={adjustment.healed_failure as FailureStage} size="sm" />
             <span className="font-mono text-text-dim">{healed.query_id}</span>
           </div>
         </div>
