@@ -237,9 +237,12 @@ def run_llamaindex() -> None:
             raise NotImplementedError
 
     def _pick(prompt: str) -> str:
-        # The synthesized prompt contains context + question; reuse extractive mock.
-        ctx, _, q = prompt.rpartition("Question:")
-        return _mock_llm(q.strip() or prompt, ctx)
+        # LlamaIndex's default synthesis prompt ends with "Query: <q>\nAnswer: "
+        # and embeds the context above a dashed divider.
+        ctx, _, q = prompt.rpartition("Query:")
+        q = q.split("Answer:")[0].strip() or prompt
+        ctx = "\n".join(line for line in ctx.splitlines() if not set(line.strip()) <= {"-"})
+        return _mock_llm(q, ctx.strip())
 
     index = VectorStoreIndex.from_documents(docs, embed_model=DictEmbedding())
     query_engine = index.as_query_engine(llm=EchoLLM(), similarity_top_k=2)
