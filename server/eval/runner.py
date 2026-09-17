@@ -199,6 +199,7 @@ def run_eval(clear_previous: bool = True) -> EvalResults:
         per_query=per_query,
         confusion=confusion,
         accuracy_by_intent=accuracy_by_intent,
+        intent_classification_accuracy=intent_classification_accuracy,
     )
 
     RESULTS_PATH.write_text(json.dumps(results.to_dict(), indent=2), encoding="utf-8")
