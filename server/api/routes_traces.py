@@ -23,8 +23,10 @@ router = APIRouter(prefix="/api", tags=["traces"])
 
 
 class QueryRequest(BaseModel):
-    """Body for POST /api/query."""
-    query: str
+    """Body for POST /api/query (and /api/query/heal, which uses query_id)."""
+    query: str = ""
+    # Self-healing: the stored trace to heal (required for /api/query/heal).
+    query_id: Optional[str] = None
     key_terms: Optional[list[str]] = None
     # For ad-hoc queries the localizer has no ground truth; callers may still
     # supply needed_chunk_ids to enable the retrieval/rerank signals.
@@ -54,6 +56,8 @@ def get_trace(query_id: str):
 
 @router.post("/query")
 def post_query(req: QueryRequest):
+    if not req.query.strip():
+        raise HTTPException(status_code=422, detail={"error": "empty_query"})
     try:
         trace = run_query(
             req.query,
