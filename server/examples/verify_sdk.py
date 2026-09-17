@@ -155,13 +155,13 @@ def run_llamaindex() -> None:
     try:
         from llama_index.core import Document as LIDocument, VectorStoreIndex
         from llama_index.core.base.embeddings.base import BaseEmbedding
-        from llama_index.core.base.llms.base import BaseLLM
         from llama_index.core.base.llms.types import (
             CompletionResponse,
             CompletionResponseGen,
             LLMMetadata,
         )
-        from llama_index.core.schema import NodeWithScore
+        from llama_index.core.llms import CustomLLM
+        from llama_index.core.schema import NodeWithScore  # noqa: F401
     except ImportError:
         print("[llamaindex] skipped (llama-index-core not installed)")
         return
@@ -199,7 +199,7 @@ def run_llamaindex() -> None:
         norm = math.sqrt(sum(v * v for v in vec)) or 1.0
         return [v / norm for v in vec]
 
-    class EchoLLM(BaseLLM):
+    class EchoLLM(CustomLLM):
         """Toy LLM: extractive answer from the prompt's context."""
         @classmethod
         def class_name(cls) -> str:

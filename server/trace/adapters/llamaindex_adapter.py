@@ -80,7 +80,7 @@ class LlamaIndexTraceHandler:
                 BaseEventHandler,
             )
             from llama_index.core.instrumentation.span_handlers import (
-                BaseSpanHandler,
+                SimpleSpanHandler,
             )
         except ImportError as exc:  # pragma: no cover
             raise ImportError(
@@ -104,7 +104,9 @@ class LlamaIndexTraceHandler:
         # ---- span handler ---------------------------------------------------
         outer = self
 
-        class _SpanHandler(BaseSpanHandler):
+        class _SpanHandler(SimpleSpanHandler):
+            """SimpleSpanHandler drives on_span_start/on_span_end for us."""
+
             def __init__(self) -> None:
                 super().__init__()
                 self.open_spans: dict[Any, Any] = {}
@@ -114,8 +116,7 @@ class LlamaIndexTraceHandler:
                 if stage is None:
                     return
                 try:
-                    scope = outer._ctx.stage(stage, input={})
-                    scope.__enter__()
+                    scope = outer._ctx.begin_stage(stage, input={})
                 except Exception:
                     return
                 self.open_spans[span.id_] = (scope, stage)
@@ -144,23 +145,16 @@ class LlamaIndexTraceHandler:
                             for n in list(nodes)[:20]
                         ]
                         scope.set(output={"documents": docs, "count": len(docs)})
-                    scope.__exit__(None, None, None)
+                    scope.end()
                 except Exception:
-                    try:
-                        scope.__exit__(None, None, None)
-                    except Exception:
-                        pass
+                    scope.end()
 
             def on_span_error(self, error: Exception, span: Any) -> None:
                 entry = self.open_spans.pop(getattr(span, "id_", None), None)
                 if entry is None:
                     return
                 scope, _stage = entry
-                try:
-                    scope.event.status = StageStatus.ERROR
-                    scope.event.error = str(error)
-                finally:
-                    scope.__exit__(None, None, None)
+                scope.end(status=StageStatus.ERROR, error=str(error))
 
         # ---- event handler (answers) ----------------------------------------
         class _EventHandler(BaseEventHandler):

@@ -91,7 +91,7 @@ def create_handler(
 
         # -- retrieval -------------------------------------------------------
         def on_retriever_start(self, serialized: Any, query: Any, **kwargs: Any) -> None:
-            self._rc = self._ctx.stage("retrieval", input={"query": str(query)[:400]})
+            self._rc = self._ctx.begin_stage("retrieval", input={"query": str(query)[:400]})
 
         def on_retriever_end(self, documents: Any, **kwargs: Any) -> None:
             if self._rc is None:
@@ -107,14 +107,20 @@ def create_handler(
                     }
                 )
             self._rc.set(output={"documents": docs, "count": len(docs)})
+            self._rc.end()
             self._rc = None
             if not self._context:
                 self._context = "\n".join(d["text"] for d in docs)
 
+        def on_retriever_error(self, error: BaseException, **kwargs: Any) -> None:
+            if self._rc is not None:
+                self._rc.end(status=StageStatus.ERROR, error=str(error))
+                self._rc = None
+
         # -- generation ------------------------------------------------------
         def on_llm_start(self, serialized: Any, prompts: Any, **kwargs: Any) -> None:
             preview = str(prompts[0])[:400] if prompts else ""
-            self._gen = self._ctx.stage("generation", input={"prompt_preview": preview})
+            self._gen = self._ctx.begin_stage("generation", input={"prompt_preview": preview})
 
         def on_llm_end(self, response: Any, **kwargs: Any) -> None:
             text = ""
@@ -125,20 +131,26 @@ def create_handler(
             self._answer = text
             if self._gen is not None:
                 self._gen.set(output={"answer": text})
+                self._gen.end()
                 self._gen = None
 
         def on_llm_error(self, error: BaseException, **kwargs: Any) -> None:
             if self._gen is not None:
-                self._gen.event.status = StageStatus.ERROR
-                self._gen.event.error = str(error)
+                self._gen.end(status=StageStatus.ERROR, error=str(error))
                 self._gen = None
 
         def on_tool_start(self, serialized: Any, tool_name: str, **kwargs: Any) -> None:
-            self._tool = self._ctx.stage("generation", input={"tool": str(tool_name)})
+            self._tool = self._ctx.begin_stage("generation", input={"tool": str(tool_name)})
 
         def on_tool_end(self, output: Any, **kwargs: Any) -> None:
             if self._tool is not None:
                 self._tool.set(output={"result": str(output)[:400]})
+                self._tool.end()
+                self._tool = None
+
+        def on_tool_error(self, error: BaseException, **kwargs: Any) -> None:
+            if self._tool is not None:
+                self._tool.end(status=StageStatus.ERROR, error=str(error))
                 self._tool = None
 
         # -- assembly (outermost chain) ---------------------------------------
@@ -155,13 +167,14 @@ def create_handler(
                     )[:2000]
                 if ctx_text:
                     self._context = ctx_text
-                self._asm = self._ctx.stage("assembly", input={"inputs": str(inputs)[:400]})
+                self._asm = self._ctx.begin_stage("assembly", input={"inputs": str(inputs)[:400]})
 
         def on_chain_end(self, outputs: Any, **kwargs: Any) -> None:
             self._chain_depth -= 1
             if self._chain_depth == 0:
                 if self._asm is not None:
                     self._asm.set(output={"outputs": str(outputs)[:400]})
+                    self._asm.end()
                     self._asm = None
                 # Chains without an LLM callable still produce a final answer.
                 if not self._answer:
@@ -175,6 +188,9 @@ def create_handler(
 
         def on_chain_error(self, error: BaseException, **kwargs: Any) -> None:
             self._chain_depth = max(0, self._chain_depth - 1)
+            if self._asm is not None:
+                self._asm.end(status=StageStatus.ERROR, error=str(error))
+                self._asm = None
 
         # -- noise we intentionally ignore ------------------------------------
         def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
