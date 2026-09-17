@@ -336,3 +336,8 @@ INFO:     127.0.0.1:51494 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
 11:14:00 PM [vite] (client) hmr update /src/pages/Features.tsx, /src/index.css
 11:14:04 PM [vite] (client) hmr update /src/index.css, /src/components/StageCard.tsx
 11:14:09 PM [vite] (client) hmr update /src/index.css, /src/components/ComparisonView.tsx
+INFO:     127.0.0.1:51542 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51544 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51543 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51545 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51546 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
