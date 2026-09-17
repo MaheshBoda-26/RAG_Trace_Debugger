@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { api } from '../api/client';
 import { LandingTraceTimeline } from '../components/LandingTraceTimeline';
 import { FeatureCard } from '../components/FeatureCard';
 
@@ -36,6 +38,36 @@ const features = [
   {
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    title: 'Self-Healing Loop',
+    description: 'One click re-runs the failed query with auto-adjusted parameters (retrieval k, rerank k, context budget, stricter grounding) and shows a color-coded before/after diff with structural signals.',
+    metric: 'New · Phase 1',
+  },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+      </svg>
+    ),
+    title: 'Intent Classification',
+    description: 'Every query is classified (Fact Lookup, Procedure, Comparison, Summarization, Other) with confidence, plus a per-stage risk profile for that intent. Eval results are stratified by intent class.',
+    metric: 'New · Phase 3',
+  },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+      </svg>
+    ),
+    title: 'Instrumentation SDK',
+    description: 'Decorator + context-manager API for any Python pipeline, with drop-in LangChain and LlamaIndex adapters. SDK traces land in the same dashboard, filterable by framework.',
+    metric: 'New · Phase 4',
+  },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
     ),
@@ -64,6 +96,79 @@ const features = [
     metric: 'File-based store',
   },
 ];
+
+function LiveDemo() {
+  const [query, setQuery] = useState('What is the audit-log export API rate limit?');
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<{ query_id: string; answer: string; indicated_failure: string; intent: string; intent_confidence: number } | null>(null);
+  const navigate = useNavigate();
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setRunning(true);
+    setError('');
+    try {
+      const t = await api.runQuery({ query });
+      setResult({
+        query_id: t.query_id,
+        answer: t.answer,
+        indicated_failure: t.indicated_failure,
+        intent: t.intent,
+        intent_confidence: t.intent_confidence,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'query failed (is the API server running?)');
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto card relative z-10">
+      <h3 className="font-display text-xl mb-2">Try it live</h3>
+      <p className="text-sm text-text-muted mb-4">
+        Runs a real traced query against the demo corpus (requires the API server on :8000).
+      </p>
+      <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Ask about Northwind SaaS…"
+          className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text placeholder:text-text-dim focus:outline-none focus:ring-2 focus:ring-primary"
+          aria-label="Query"
+        />
+        <button
+          type="submit"
+          disabled={running}
+          className="btn btn-primary whitespace-nowrap disabled:opacity-50"
+        >
+          {running ? 'Tracing…' : 'Run traced query'}
+        </button>
+      </form>
+      {error && (
+        <p className="mt-3 text-sm text-amber-600 dark:text-amber-400" role="alert">{error}</p>
+      )}
+      {result && (
+        <div className="mt-4 border border-border rounded-lg p-3 bg-bg-elevated text-sm space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-xs text-text-dim">{result.query_id}</span>
+            <span className="badge badge-info">intent: {result.intent || '—'} {result.intent ? `(${Math.round(result.intent_confidence * 100)}%)` : ''}</span>
+            <span className="badge badge-info">indicated: {result.indicated_failure}</span>
+          </div>
+          <p className="text-text-muted">{result.answer}</p>
+          <button
+            onClick={() => navigate(`/debugger`)}
+            className="text-xs text-primary hover:underline"
+          >
+            Open full trace in the dashboard →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Home() {
   return (
@@ -158,6 +263,18 @@ export function Home() {
               View all features →
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Live Demo Section */}
+      <section className="section-sm relative" aria-labelledby="demo-heading">
+        <div className="container">
+          <header className="text-center max-w-2xl mx-auto mb-10">
+            <h2 id="demo-heading" className="mb-4">
+              Run a <span className="text-primary">traced query</span> right here
+            </h2>
+          </header>
+          <LiveDemo />
         </div>
       </section>
 
