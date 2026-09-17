@@ -147,9 +147,9 @@ export function LandingTraceTimeline() {
         {/* Case header */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 hairline-b pb-3">
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <h3 id="hero-run-heading" className="exhibit-label text-text-muted">
+            <h2 id="hero-run-heading" className="exhibit-label text-text-muted">
               recorded case
-            </h3>
+            </h2>
             <span className="meta">{CASE.id}</span>
             <span className="text-sm text-text-muted">“{CASE.question}”</span>
           </div>
@@ -168,8 +168,8 @@ export function LandingTraceTimeline() {
         {/* Exhibits */}
         <ol
           className="trace-timeline mt-4"
-          role="list"
-          aria-label="Pipeline exhibits for the recorded case"
+          tabIndex={0}
+          aria-label="Pipeline exhibits for the recorded case, scrollable"
         >
           {EXHIBITS.map((exhibit, index) => {
             const isLit = index < lit;
@@ -201,7 +201,7 @@ export function LandingTraceTimeline() {
                   )}
                 </div>
 
-                <h4 className="trace-stage-name mt-3">{exhibit.name}</h4>
+                <h3 className="trace-stage-name mt-3">{exhibit.name}</h3>
                 <div className="trace-stage-metric">{exhibit.readout}</div>
                 <div className="flex items-center justify-between">
                   <span className="meta num">{exhibit.latency} ms</span>
