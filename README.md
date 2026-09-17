@@ -2,9 +2,20 @@
 
 A tracing and debugging layer that wraps a demo RAG pipeline — without altering its core architecture — so any engineer can select a query, see the full chain of what happened at every stage, and immediately identify **which stage caused a bad answer**.
 
-Production RAG systems fail silently. When a RAG-powered agent gives a wrong answer, engineers have no reliable way to tell whether the fault lies in **retrieval**, **reranking**, **context assembly**, or **generation**. This tool **localizes** the failure — it does not auto-fix it.
+Production RAG systems fail silently. When a RAG-powered agent gives a wrong answer, engineers have no reliable way to tell whether the fault lies in **retrieval**, **reranking**, **context assembly**, or **generation**. This tool **localizes** the failure — and now proposes a **self-healing** parameter fix, re-runs the query, and shows a before/after diff.
 
-> Diagnostic, not curative. It narrows down *where* a failure happened; it does not correct retrieval, reranking, or generation.
+> Diagnostic first, healing second. It narrows down *where* a failure happened, then *proposes* a fix and verifies it — the localizer's verdict and the healing signals are both reported honestly, including when a re-run does **not** improve.
+
+---
+
+## What's new in this version
+
+| Feature | What it does |
+|---------|--------------|
+| **Self-Healing Loop** | One click re-runs a failed query with auto-adjusted params (`retrieval_k`/`rerank_k`/`context_max_chars`/strict grounding) and shows a color-coded before/after comparison with structural signals. |
+| **Query Intent Classification** | Every query is classified (FACT_LOOKUP / PROCEDURE / COMPARISON / SUMMARIZATION / OTHER) with confidence; the dashboard shows an intent badge plus per-stage **risk profile** for the intent. Eval results are stratified by intent. |
+| **Instrumentation SDK** | `@traced_stage` + `InstrumentedPipeline` for any Python pipeline, plus drop-in **LangChain** and **LlamaIndex** adapters. Framework-filterable in the dashboard. |
+| **Production hardening** | Circuit breaker + timeout on the LLM call (mock fallback with visible prefix), per-IP rate limiting (429 + `Retry-After`), and `/api/health` with uptime, query counters, and avg overhead. |
 
 ---
 
@@ -148,6 +159,24 @@ npm run dev
 
 Open **http://localhost:5173** — the Debugger tab shows the eval traces; the Evaluation tab runs the labeled batch; the Corpus tab shows the indexed documents.
 
+### 3. Try the self-healing loop
+
+1. Run the eval (or open any trace with an indicated failure — e.g. q12 rerank, q15 assembly).
+2. Click **“Heal this trace”** in the failure banner.
+3. The server re-runs the query with adjusted params and the dashboard shows a before/after comparison: changed parameter chips, structural signal pills (needed chunks retrieved/kept, key terms in context), and a stage-by-stage diff.
+
+Or via the API:
+```bash
+curl -X POST http://127.0.0.1:8000/api/query/heal \
+  -H 'Content-Type: application/json' -d '{"query_id": "q12"}'
+```
+
+### 4. Verify the SDK traces LangChain / LlamaIndex pipelines
+```bash
+python -m server.examples.verify_sdk
+```
+Writes three traces (native SDK, LangChain chain, LlamaIndex query engine) and prints their dashboard-visible ids.
+
 ---
 
 ## The demo corpus & test set
@@ -198,15 +227,28 @@ To re-run the eval: `python -m server.eval.runner` or the **Evaluation → Run e
 
 | Method | Route | Purpose |
 |--------|-------|---------|
-| GET | `/api/health` | server status + Gemini mode |
+| GET | `/api/health` | server status + Gemini mode + uptime/query/error metrics + circuit-breaker state |
 | GET | `/api/corpus` | indexed docs and chunks |
 | GET | `/api/traces` | list trace summaries (`?failure=<stage>` filter) |
 | GET | `/api/traces/{query_id}` | full trace JSON |
-| POST | `/api/query` | run one ad-hoc query → trace |
+| POST | `/api/query` | run one ad-hoc query → trace (rate-limited: 10/min/IP) |
+| POST | `/api/query/heal` | self-healing: re-run a stored trace with auto-adjusted params → `{original, healed, adjustment}` |
 | DELETE | `/api/traces` | clear all stored traces |
 | GET | `/api/eval/queries` | the labeled query set |
-| POST | `/api/eval/run` | run the full labeled batch → results |
+| POST | `/api/eval/run` | run the full labeled batch → results (now intent-stratified) |
 | GET | `/api/eval/results` | latest eval results |
+
+The `/api/query/heal` response pairs the original and healed traces with the
+diagnosis: `adjustment.adjusted_params` (what changed and why),
+`adjustment.signals_before/after` (needed chunks retrieved/kept, key terms in
+context), and `adjustment.improved` (an honest verdict — `true` only when the
+healed run localizes clean or recovers a structural signal).
+
+The trace schema now also carries `intent`, `intent_confidence`,
+`intent_risk_profile`, `framework`, and `needed_chunk_ids`. `POST /api/query`
+and `/api/query/heal` enforce a per-IP fixed-window limit
+(`RATE_LIMIT_QUERIES_PER_MINUTE`, default 10/min) and answer `429` with a
+`Retry-After` header when exceeded.
 
 ---
 
@@ -223,30 +265,40 @@ RAG_Trace_Debugger/
 ├── server/
 │   ├── trace/           # ← framework-agnostic core (the product)
 │   │   ├── events.py        # canonical schema (Trace, StageEvent, Candidate)
-│   │   ├── collector.py     # ctx.stage(...) API + honest self-overhead timing
+│   │   ├── collector.py     # ctx.stage(...) / begin_stage(...) + honest overhead timing
+│   │   ├── instrument.py    # Phase 4 SDK: InstrumentedPipeline, @traced_stage
+│   │   ├── adapters/        # langchain_adapter.py, llamaindex_adapter.py
 │   │   ├── store.py         # JSON store, one record per query
 │   │   └── localize.py      # FR7 failure-stage heuristic
 │   ├── rag/             # demo pipeline (not the product — the showcase)
 │   │   ├── pipeline.py      # wires 5 stages through the collector
+│   │   ├── auto_adjust.py   # Phase 1: failure stage → parameter suggestions
+│   │   ├── circuit_breaker.py # Phase 2: LLM circuit breaker
+│   │   ├── intent.py        # Phase 3: intent classification + risk profiles
 │   │   ├── embeddings.py    # Gemini text-embedding-004 + disk cache
 │   │   ├── bm25.py          # keyword index
 │   │   ├── retrieval.py     # hybrid dense + BM25 → RRF
-│   │   ├── stages.py        # rewrite, rerank, assembly, generation
+│   │   ├── stages.py        # rewrite, rerank, assembly, generation (+ breaker/fallback)
 │   │   └── corpus.py        # loading + paragraph chunking
-│   ├── api/             # FastAPI routes
-│   ├── eval/            # batch runner → localization accuracy + overhead
-│   ├── main.py          # FastAPI app + CORS
-│   ├── config.py
+│   ├── examples/
+│   │   └── verify_sdk.py    # end-to-end SDK verification (native/LangChain/LlamaIndex)
+│   ├── api/             # FastAPI routes (incl. POST /api/query/heal)
+│   ├── eval/            # batch runner → localization accuracy + intent stratification
+│   ├── metrics.py       # process-level counters for /api/health
+│   ├── main.py          # FastAPI app + CORS + rate limiting
+│   ├── config.py        # + GEMINI_TIMEOUT, CIRCUIT_BREAKER_*, RATE_LIMIT_*
 │   └── data/
 │       ├── corpus/*.md      # 12 demo docs
-│       ├── queries/queries.json  # 15 labeled queries
+│       ├── queries/queries.json  # 15 labeled queries (+ expected_intent)
 │       ├── traces/          # ← gitignored output
 │       └── eval/results.json     # ← gitignored output
+├── docs/
+│   └── SDK.md           # full SDK documentation
 └── web/                 # React + Vite + TS + Tailwind dashboard
     └── src/
         ├── types/trace.ts   # hand-mirrored from server/trace/events.py
         ├── api/client.ts
-        └── components/      # QueryList, TraceTimeline, StageCard, ChunkTable, EvalPanel
+        └── components/      # QueryList, TraceTimeline, ComparisonView, StageCard, EvalPanel…
 ```
 
 ---
@@ -265,20 +317,20 @@ Every signal in the trace maps to one of these questions — metrics tell you *t
 
 ---
 
-## Known limitations (PRD §9)
+## Known limitations
 
-- **Diagnostic only** — localizes, never auto-fixes.
-- **Demo pipeline is intentionally simple** — not a production-grade RAG stack (no real cross-encoder reranker, paragraph-level chunking only).
+- **Healing is parameter-level** — the self-healing loop adjusts retrieval/rerank/assembly parameters and grounding prompts; it does not rewrite your pipeline or fine-tune models. When a failure is not parameter-fixable (e.g. the information genuinely is not in the corpus), the comparison view says so instead of claiming success.
+- **Intent classification is heuristic without an API key** — the deterministic regex fallback matches most factual/support queries; set `GEMINI_API_KEY` for LLM classification (few-shot prompted). The 100% intent-accuracy figure below is on the 15-query labeled set, whose `expected_intent` labels were authored alongside the heuristics — treat it as a smoke test, not a benchmark.
 - **Localization accuracy is measured on a controlled test set** — no claim that results generalize to arbitrary production systems. Ground-truth labels were calibrated to this pipeline's behavior.
-- **No multi-tenant / auth / production hardening** — hackathon scope.
-- **LangChain / LlamaIndex adapters** are noted as future work; the collector is framework-agnostic but no third-party adapters ship in this version.
+- **Rate limiting and metrics are in-memory and per-process** — they reset on restart and are not shared across workers. Sufficient for demos; use a real limiter/registry for multi-worker deployments.
+- **The demo pipeline is intentionally simple** — paragraph-level chunking; the cross-encoder reranker is a small MiniLM model, not a production reranker.
 
 ---
 
 ## Future work
 
-- Automatic root-cause suggestion (not just localization)
-- Adapters for LangChain / LlamaIndex / arbitrary third-party RAG frameworks
-- Real cross-encoder reranker for the demo pipeline
+- Iterate the healing loop: try multiple candidate adjustments and pick the best (beam-style self-healing)
+- Per-intent parameter presets (e.g. auto-raise `context_max_chars` for SUMMARIZATION queries)
+- Adapters for Haystack / txtai / arbitrary third-party RAG frameworks
+- Persistent metrics + multi-worker rate limiting (Redis backend)
 - Multi-tenant trace storage + auth
-- Retrieval-miss test cases that exercise a dense+hybrid run (requires live Gemini)
