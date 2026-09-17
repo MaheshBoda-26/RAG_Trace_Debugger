@@ -30,6 +30,14 @@ def has_gemini() -> bool:
     return bool(GEMINI_API_KEY)
 
 
+# --- Generation call hardening ---------------------------------------------
+GEMINI_TIMEOUT: int = int(_env("GEMINI_TIMEOUT", "30"))
+CIRCUIT_BREAKER_THRESHOLD: int = int(_env("CIRCUIT_BREAKER_THRESHOLD", "3"))
+CIRCUIT_BREAKER_RESET_SECONDS: int = int(_env("CIRCUIT_BREAKER_RESET_SECONDS", "30"))
+
+# --- API rate limiting (POST /api/query and /api/query/heal) ----------------
+RATE_LIMIT_QUERIES_PER_MINUTE: int = int(_env("RATE_LIMIT_QUERIES_PER_MINUTE", "10"))
+
 # --- Server ----------------------------------------------------------------
 HOST: str = _env("HOST", "127.0.0.1")
 PORT: int = int(_env("PORT", "8000"))

@@ -69,12 +69,17 @@ def run_query(
     rerank_k: int = DEFAULT_RERANK_K,
     context_max_chars: int = DEFAULT_CONTEXT_MAX_CHARS,
     persist: bool = True,
+    strict_grounding: bool = False,
+    skip_rewrite: bool = False,
 ) -> Trace:
     """Run one query through the full traced pipeline.
 
     The optional eval-only fields (needed_chunk_ids, ground_truth_failure,
     expected_answer) are attached to the trace so the dashboard can show
     ground-truth vs. indicated side by side.
+
+    strict_grounding / skip_rewrite are self-healing levers: the heal endpoint
+    sets them based on the localized failure stage (see rag/auto_adjust.py).
     """
     ensure_dirs()
     comps = get_components()
@@ -83,8 +88,12 @@ def run_query(
 
     # Stage 1: query rewrite
     with ctx.stage("query_rewrite", input={"raw": query}) as s:
-        rewritten = rewrite_query(query)
-        s.set(output={"rewritten": rewritten})
+        if skip_rewrite:
+            rewritten = query
+            s.set(output={"rewritten": rewritten}, meta={"skipped": True})
+        else:
+            rewritten = rewrite_query(query)
+            s.set(output={"rewritten": rewritten})
 
     # Stage 2: retrieval (hybrid dense + BM25 → RRF)
     with ctx.stage("retrieval", input={"query": query, "rewritten": rewritten, "k": retrieval_k}) as s:
@@ -134,7 +143,9 @@ def run_query(
 
     # Stage 5: generation
     with ctx.stage("generation", input={"query": query}) as s:
-        answer = generate_answer(query, context, mock_drift=mock_drift)
+        answer = generate_answer(
+            query, context, mock_drift=mock_drift, strict_grounding=strict_grounding
+        )
         s.set(output={"answer": answer})
 
     trace = ctx.finish(answer=answer, final_context=context)

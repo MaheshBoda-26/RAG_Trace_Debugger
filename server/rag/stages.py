@@ -10,7 +10,8 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from ..config import GEMINI_API_KEY, GEMINI_MODEL, has_gemini
+from ..config import GEMINI_API_KEY, GEMINI_MODEL, GEMINI_TIMEOUT, has_gemini
+from .circuit_breaker import CircuitOpenError, generation_breaker
 from .retrieval import RetrievalResult
 from .reranker import RerankOutput, rerank_cross_encoder
 
@@ -101,19 +102,90 @@ def assemble_context(kept: list[RetrievalResult], *, max_chars: int = 1200) -> t
     return context, ids
 
 
-def generate_answer(query: str, context: str, *, mock_drift: bool = False) -> str:
+def generate_answer(
+    query: str,
+    context: str,
+    *,
+    mock_drift: bool = False,
+    strict_grounding: bool = False,
+) -> str:
     """Generate an answer from the context.
 
-    With GEMINI_API_KEY: calls gemini-2.5-flash with a grounded prompt.
+    With GEMINI_API_KEY: calls gemini-2.5-flash with a grounded prompt. The
+    call is guarded by the shared circuit breaker (see circuit_breaker.py) and
+    a hard timeout; on any failure it falls back to the deterministic mock with
+    a visible "(Gemini unavailable — mock fallback)" prefix.
     Without it: a deterministic mock that restates the most relevant sentence
     from the context, or a deliberately vague answer if mock_drift=True.
 
     mock_drift models a GENERATION failure (the model ignoring context); used
     by the mock fallback to exercise that failure mode deterministically.
+    strict_grounding re-runs with a prompt that demands the model restate the
+    relevant context sentences — the self-healing loop uses it for GENERATION
+    failures.
     """
     if has_gemini():
-        return _generate_via_gemini(query, context)
+        try:
+            answer = generation_breaker.call(
+                lambda: _generate_via_gemini(
+                    query, context, strict_grounding=strict_grounding
+                )
+            )
+        except CircuitOpenError:
+            return (
+                "(Gemini unavailable — mock fallback; circuit open, "
+                f"retry in {generation_breaker.seconds_until_retry():.0f}s) "
+                + _generate_mock(query, context)
+            )
+        except Exception as exc:
+            return (
+                "(Gemini unavailable — mock fallback: "
+                f"{type(exc).__name__}) "
+                + _generate_mock(query, context)
+            )
+        if strict_grounding:
+            # Mark the healed run so the comparison view can show the prompt
+            # change took effect.
+            return "[strict-grounding] " + answer
+        return answer
     return _generate_mock(query, context, mock_drift=mock_drift)
+
+
+def _generate_via_gemini(
+    query: str, context: str, *, strict_grounding: bool = False
+) -> str:
+    import httpx
+
+    grounding = (
+        "You are a support agent for Northwind SaaS. Answer the user's question "
+        "using ONLY the context below. If the context does not contain the answer, "
+        "say you don't know. Be concise."
+        if not strict_grounding
+        else (
+            "You are a support agent for Northwind SaaS. Answer the user's question "
+            "using ONLY the context below. STRICT GROUNDING RULES: (1) quote or "
+            "paraphrase the exact sentences from the context that contain the "
+            "answer; (2) include every specific number, limit, and named "
+            "constraint that appears in the relevant context sentences; (3) do "
+            "not hedge or defer to documentation; (4) if the context truly lacks "
+            "the answer, say so. Be concise but complete."
+        )
+    )
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    prompt = (
+        f"{grounding}\n\nContext:\n{context}\n\nQuestion: {query}"
+    )
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 200},
+    }
+    resp = httpx.post(url, json=payload, timeout=httpx.Timeout(GEMINI_TIMEOUT))
+    resp.raise_for_status()
+    data = resp.json()
+    try:
+        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (KeyError, IndexError):
+        return "(no answer generated)"
 
 
 def _generate_via_gemini(query: str, context: str) -> str:
