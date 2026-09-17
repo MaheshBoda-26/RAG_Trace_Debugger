@@ -6,3 +6,9 @@ httpx==0.28.1
 numpy==2.2.1
 python-dotenv==1.0.1
 sentence-transformers==3.4.1
+
+# --- Optional: instrumentation SDK adapters (Phase 4) -----------------------
+# Install to trace LangChain / LlamaIndex pipelines (adapters import lazily):
+#   pip install langchain-core llama-index-core
+# langchain-core>=0.3.29
+# llama-index-core>=0.12.10

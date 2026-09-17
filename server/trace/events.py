@@ -118,6 +118,10 @@ class Trace(BaseModel):
     # Key terms the localizer / eval use to judge whether the answer is right.
     key_terms: list[str] = Field(default_factory=list)
 
+    # Origin of the trace: 'native' (built-in pipeline), 'langchain',
+    # 'llamaindex', or 'custom' (SDK-instrumented third-party pipeline).
+    framework: str = "native"
+
     # Eval bookkeeping (filled in by the eval runner, not the pipeline).
     ground_truth_failure: Optional[FailureStage] = None
     expected_answer: Optional[str] = None
@@ -143,6 +147,7 @@ class TraceSummary(BaseModel):
     stage_count: int
     total_duration_ms: float
     intent: str = ""
+    framework: str = "native"
 
 
 def summarize(trace: Trace) -> TraceSummary:
@@ -155,4 +160,5 @@ def summarize(trace: Trace) -> TraceSummary:
         stage_count=len(trace.stages),
         total_duration_ms=trace.total_duration_ms,
         intent=trace.intent,
+        framework=trace.framework,
     )

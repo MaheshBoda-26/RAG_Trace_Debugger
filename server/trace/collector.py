@@ -43,8 +43,33 @@ def _new_query_id() -> str:
 class StageScope:
     """The object yielded by `ctx.stage(...)`. Stages call `.set(...)` on it."""
 
-    def __init__(self, event: StageEvent) -> None:
+    def __init__(self, event: StageEvent, context: Optional["TraceContext"] = None) -> None:
         self._event = event
+        self._context = context
+        self._stage_start = time.perf_counter()
+        self._ended = False
+
+    def end(
+        self,
+        *,
+        status: StageStatus = StageStatus.OK,
+        error: Optional[str] = None,
+    ) -> None:
+        """Close the stage explicitly (SDK/adapter API).
+
+        Equivalent to exiting the `ctx.stage(...)` context manager. Idempotent.
+        """
+        if self._ended:
+            return
+        self._ended = True
+        bk_start = time.perf_counter()
+        self._event.ended_at = _utcnow()
+        self._event.duration_ms = (time.perf_counter() - self._stage_start) * 1000.0
+        self._event.status = status
+        self._event.error = error
+        if self._context is not None:
+            self._context._trace.stages.append(self._event)
+            self._context._stage_overhead_ms += (time.perf_counter() - bk_start) * 1000.0
 
     # ---- mutators a stage calls inside the `with` block --------------------
     def set(self, **kwargs: Any) -> "StageScope":
@@ -154,6 +179,27 @@ class TraceContext:
     def key_terms(self) -> list[str]:
         return self._trace.key_terms
 
+    def begin_stage(
+        self,
+        name: StageName | str,
+        *,
+        input: Optional[dict[str, Any]] = None,
+    ) -> StageScope:
+        """Open a stage without a `with` block (SDK/adapter API).
+
+        Pair with `scope.end(...)` (or `scope.end(status=..., error=...)`) when
+        the start and end live in different callbacks, e.g. framework adapters.
+        """
+        stage_name = StageName(name)
+        bk_start = time.perf_counter()
+        event = StageEvent(
+            stage=stage_name,
+            started_at=_utcnow(),
+            input=dict(input or {}),
+        )
+        self._stage_overhead_ms += (time.perf_counter() - bk_start) * 1000.0
+        return StageScope(event, context=self)
+
     @contextmanager
     def stage(
         self,
@@ -167,20 +213,7 @@ class TraceContext:
         sets via the yielded StageScope. Exceptions are recorded with status
         'error' and re-raised.
         """
-        stage_name = StageName(name)
-        # --- bookkeeping we count toward tracing overhead ------------------
-        bk_start = time.perf_counter()
-        event = StageEvent(
-            stage=stage_name,
-            started_at=_utcnow(),
-            input=dict(input or {}),
-        )
-        bk_mid = time.perf_counter()
-        self._stage_overhead_ms += (bk_mid - bk_start) * 1000.0
-        # -------------------------------------------------------------------
-
-        scope = StageScope(event)
-        stage_start = time.perf_counter()
+        scope = self.begin_stage(name, input=input)
         status = StageStatus.OK
         error: Optional[str] = None
         try:
@@ -190,16 +223,7 @@ class TraceContext:
             error = f"{type(exc).__name__}: {exc}"
             raise
         finally:
-            # --- bookkeeping again counted toward tracing overhead ----------
-            bk2_start = time.perf_counter()
-            ended = _utcnow()
-            event.ended_at = ended
-            event.duration_ms = (time.perf_counter() - stage_start) * 1000.0
-            event.status = status
-            event.error = error
-            self._trace.stages.append(event)
-            self._stage_overhead_ms += (time.perf_counter() - bk2_start) * 1000.0
-            # ----------------------------------------------------------------
+            scope.end(status=status, error=error)
 
     def finish(self, answer: str = "", final_context: str = "") -> Trace:
         """Finalize the trace: denormalize answer/context, compute totals.
