@@ -133,7 +133,7 @@ function LiveDemo() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Ask about Northwind SaaS…"
-            className="flex-1 border border-border bg-transparent px-3 py-2 font-mono text-sm text-text placeholder:text-text-dim focus:outline-none"
+            className="field flex-1 text-sm"
           />
           <button type="submit" disabled={running} className="btn btn-primary whitespace-nowrap">
             {running ? 'Tracing…' : 'Run traced case'}
