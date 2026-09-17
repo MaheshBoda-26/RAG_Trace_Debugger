@@ -237,3 +237,36 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 INFO:     127.0.0.1:50740 - "GET /api/health HTTP/1.1" 200 OK
+env: node: No such file or directory
+env: node: No such file or directory
+env: node: No such file or directory
+
+  VITE v8.1.5  ready in 258 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
+INFO:     127.0.0.1:50758 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50771 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50774 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50772 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50776 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50779 - "GET /api/traces/li_20f8c2d7b12a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50780 - "GET /api/traces HTTP/1.1" 200 OK
+{"ts":"2026-09-17 22:37:22,002","level":"INFO","logger":"sentence_transformers.cross_encoder.CrossEncoder","msg":"Use pytorch device: mps"}
+{"ts":"2026-09-17 22:37:22,541","level":"INFO","logger":"server.rag.reranker","msg":"Loaded cross-encoder model: cross-encoder/ms-marco-MiniLM-L-6-v2"}
+INFO:     127.0.0.1:50798 - "POST /api/query HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50808 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50810 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50809 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50815 - "GET /api/traces/q_004abf86cc46 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50816 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50828 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50831 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50829 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50833 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50835 - "GET /api/traces/q_004abf86cc46 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50837 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50842 - "GET /api/traces/q12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50841 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50849 - "POST /api/query/heal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50851 - "GET /api/traces HTTP/1.1" 200 OK
