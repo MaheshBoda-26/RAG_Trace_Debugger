@@ -1,15 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="RAG Trace Debugger - A diagnostic layer for RAG pipelines. Localizes failure — doesn't auto-fix. See exactly which stage broke your answer." />
-    <meta name="theme-color" content="#0A0F1A" />
-    <title>RAG Trace Debugger | Debug RAG Pipelines</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <meta
+      name="description"
+      content="A diagnostic layer for RAG pipelines. A trace is evidence: see which stage broke the answer — retrieval, rerank, assembly, or generation — then re-test the fix."
+    />
+    <meta name="theme-color" content="#131211" />
+    <title>RAG Trace Debugger — localize the stage that broke your answer</title>
+
+    <!-- Self-hosted faces (web/scripts/fetch-fonts.py). No third-party request. -->
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/instrument-sans-latin.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/fraunces-latin.woff2" crossorigin />
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+
+    <!-- Theme must be resolved before first paint: dark by default, remembered
+         when the visitor has chosen, otherwise no flash of the wrong theme. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('rtd-theme');
+          var theme = stored === 'light' || stored === 'dark' ? stored : 'dark';
+          document.documentElement.setAttribute('data-theme', theme);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', theme === 'light' ? '#f7f5f1' : '#131211');
+        } catch (e) {
+          /* localStorage unavailable — stay on the dark default */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

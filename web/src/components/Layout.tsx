@@ -1,5 +1,35 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { ThemeToggle } from './ThemeToggle';
+import { CommandPalette } from './CommandPalette';
+
+const NAV_LINKS = [
+  { path: '/', label: 'Overview' },
+  { path: '/debugger', label: 'Case files' },
+  { path: '/eval', label: 'Batch review' },
+  { path: '/features', label: 'How it works' },
+  { path: '/about', label: 'About' },
+];
+
+function Mark({ className = 'w-6 h-6' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 32 32"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* A trace with one fault spike — the product in one glyph. */}
+      <rect x="2" y="2" width="28" height="28" />
+      <path d="M6 21h5l2.5-10 3 15 2-5H26" />
+    </svg>
+  );
+}
 
 export function Layout() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -7,8 +37,9 @@ export function Layout() {
   const location = useLocation();
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -16,166 +47,154 @@ export function Layout() {
     setMobileMenuOpen(false);
   }, [location]);
 
-  const navLinks = [
-    { path: '/', label: 'Home' },
-    { path: '/debugger', label: 'Dashboard' },
-    { path: '/features', label: 'Features' },
-    { path: '/about', label: 'About' },
-  ];
+  const isActive = (path: string) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
   return (
     <div className="min-h-screen bg-bg text-text font-body">
-      {/* Background effects */}
-      <div className="fixed inset-0 -z-10 bg-radial-glow" />
-      <div className="fixed inset-0 -z-10 bg-grid" />
-      <div className="fixed inset-0 -z-10 bg-noise" />
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
 
-      {/* Header */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-bg/95 backdrop-blur-sm border-b border-border'
-            : 'bg-transparent'
+        className={`fixed top-0 left-0 right-0 z-50 transition-colors ${
+          isScrolled ? 'bg-bg hairline-b' : 'bg-transparent border-b border-transparent'
         }`}
       >
-        <nav className="container" aria-label="Main navigation">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2" aria-label="RAG Trace Debugger Home">
-              <svg
-                className="w-8 h-8 text-primary"
-                viewBox="0 0 32 32"
-                fill="none"
-                aria-hidden="true"
-              >
-                <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" strokeWidth="2" />
-                <path d="M8 22l8-12 8 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="8" cy="22" r="2" fill="currentColor" />
-                <circle cx="16" cy="10" r="2" fill="currentColor" />
-                <circle cx="24" cy="22" r="2" fill="currentColor" />
-              </svg>
-              <span className="font-display font-bold text-xl md:text-2xl tracking-tight">
+        <nav className="container" aria-label="Main">
+          <div className="flex h-14 items-center justify-between gap-6 md:h-16">
+            <Link to="/" className="flex items-center gap-2.5" aria-label="RAG Trace Debugger — home">
+              <Mark className="w-6 h-6 text-primary" />
+              <span className="font-display text-[1.0625rem] font-semibold tracking-tight text-text">
                 RAG Trace Debugger
               </span>
+              <span className="exhibit-label hidden lg:inline text-text-dim">diagnostic</span>
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
-              {navLinks.map((link) => (
+            <div className="hidden items-center gap-7 md:flex">
+              {NAV_LINKS.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`nav-link ${location.pathname === link.path ? 'active' : ''}`}
+                  className={`nav-link ${isActive(link.path) ? 'active' : ''}`}
+                  aria-current={isActive(link.path) ? 'page' : undefined}
+                >
+                  {link.label}
+                  {isActive(link.path) && (
+                    <motion.span
+                      layoutId="nav-underline"
+                      className="absolute left-0 right-0 -bottom-0.5 h-px bg-primary"
+                      transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+                    />
+                  )}
+                </Link>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1">
+              <CommandPalette />
+              <ThemeToggle />
+              <button
+                className="btn btn-ghost btn-sm md:hidden"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-expanded={mobileMenuOpen}
+                aria-controls="mobile-menu"
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24" aria-hidden="true">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {mobileMenuOpen && (
+            <div id="mobile-menu" className="hairline-t py-2 md:hidden">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`nav-link block py-2 ${isActive(link.path) ? 'active' : ''}`}
                 >
                   {link.label}
                 </Link>
               ))}
             </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden btn btn-ghost"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-menu"
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-            >
-              {mobileMenuOpen ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
-          </div>
-
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div id="mobile-menu" className="md:hidden py-4 border-t border-border animate-slide-in-right">
-              <div className="flex flex-col gap-2">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`nav-link px-2 ${location.pathname === link.path ? 'active' : ''}`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
           )}
         </nav>
       </header>
 
-      {/* Main Content */}
-      <main id="main-content" className="pt-16 md:pt-20">
+      <main id="main-content" className="pt-14 md:pt-16">
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="-mt-8 md:-mt-12 border-t border-border bg-bg-elevated/50">
-        <div className="container pt-24 pb-20 md:pt-28 md:pb-24">
-          <div className="grid gap-8 md:grid-cols-4">
-            <div className="md:col-span-2">
-              <Link to="/" className="flex items-center gap-2 mb-4" aria-label="RAG Trace Debugger Home">
-                <svg className="w-8 h-8 text-primary" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" strokeWidth="2" />
-                  <path d="M8 22l8-12 8 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="8" cy="22" r="2" fill="currentColor" />
-                  <circle cx="16" cy="10" r="2" fill="currentColor" />
-                  <circle cx="24" cy="22" r="2" fill="currentColor" />
-                </svg>
-                <span className="font-display font-bold text-xl tracking-tight">RAG Trace Debugger</span>
-              </Link>
-              <p className="text-text-muted max-w-xs text-base leading-relaxed">
-                Diagnostic layer for RAG pipelines. Localizes failure — doesn't auto-fix.
-                See exactly which stage broke your answer.
+      <footer className="hairline-t">
+        <div className="container py-14 md:py-16">
+          <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <Mark className="w-6 h-6 text-primary" />
+                <span className="font-display text-[1.0625rem] font-semibold tracking-tight">
+                  RAG Trace Debugger
+                </span>
+              </div>
+              <p className="mt-4 max-w-sm text-sm text-text-muted">
+                A trace is evidence. Localizes the stage that broke the answer — then re-runs it to
+                test the fix. It never silently rewrites your pipeline.
               </p>
             </div>
 
-            <nav aria-label="Product links">
-              <h4 className="font-display font-semibold mb-4">Product</h4>
+            <nav aria-label="Product">
+              <h2 className="exhibit-label mb-4">Surfaces</h2>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/features" className="nav-link">Features</Link></li>
-                <li><Link to="/about" className="nav-link">About</Link></li>
-                <li><Link to="/debugger" className="nav-link">Dashboard</Link></li>
+                <li><Link to="/debugger" className="nav-link">Case files</Link></li>
+                <li><Link to="/eval" className="nav-link">Batch review</Link></li>
+                <li><Link to="/corpus" className="nav-link">Corpus</Link></li>
+                <li><Link to="/features" className="nav-link">How it works</Link></li>
               </ul>
             </nav>
 
             <nav aria-label="Resources">
-              <h4 className="font-display font-semibold mb-4">Resources</h4>
+              <h2 className="exhibit-label mb-4">Resources</h2>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href="https://github.com/MaheshBoda-26/RAG_Trace_Debugger" target="_blank" rel="noopener noreferrer" className="nav-link">
-                    GitHub
+                  <a
+                    href="https://github.com/MaheshBoda-26/RAG_Trace_Debugger"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="nav-link"
+                  >
+                    Source ↗
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="nav-link">Documentation</a>
+                  <a
+                    href="https://github.com/MaheshBoda-26/RAG_Trace_Debugger/blob/main/docs/SDK.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="nav-link"
+                  >
+                    Instrumentation SDK ↗
+                  </a>
                 </li>
                 <li>
-                  <a href="#" className="nav-link">API Reference</a>
+                  <Link to="/about" className="nav-link">Method &amp; caveats</Link>
                 </li>
               </ul>
             </nav>
           </div>
-        </div>
 
-        {/* Full-width border section */}
-        <div className="border-t border-border">
-          <div className="container py-12 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-text-dim text-sm">
-              RAG Trace Debugger · Diagnostic tool, not a fix-it tool · Localizes failure, does not auto-resolve
-            </p>
-            <div className="flex items-center gap-6 text-sm text-text-dim">
-              <span>Built with FastAPI + React + TypeScript</span>
-              <a href="#" className="nav-link">Privacy</a>
-              <a href="#" className="nav-link">Terms</a>
-            </div>
+          {/* Specimen strip: real facts, tabular, no marketing furniture. */}
+          <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 hairline-t pt-5">
+            <span className="meta">5 exhibits</span>
+            <span className="meta">1 JSON record / case</span>
+            <span className="meta">0 framework deps</span>
+            <span className="meta">runs without API keys</span>
+            <span className="meta ml-auto">FastAPI · React · TypeScript</span>
           </div>
         </div>
       </footer>

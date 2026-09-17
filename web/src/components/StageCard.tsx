@@ -9,14 +9,14 @@ interface JsonViewProps {
 function JsonView({ data }: JsonViewProps) {
   if (!data || Object.keys(data).length === 0) return null;
   return (
-    <details className="mt-2 group">
-      <summary className="text-xs font-medium text-text-dim cursor-pointer flex items-center gap-1.5 hover:text-text-muted">
+    <details className="group mt-2">
+      <summary className="exhibit-label flex cursor-pointer items-center gap-1.5 hover:text-text-muted">
         <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        Input data
+        input
       </summary>
-      <pre className="mt-2 text-xs bg-bg border border-border rounded p-2 overflow-x-auto text-text-muted max-h-48 overflow-y-auto">
+      <pre className="code-block mt-2 max-h-48 overflow-y-auto" tabIndex={0} aria-label="Stage input, scrollable">
         {JSON.stringify(data, null, 2)}
       </pre>
     </details>
@@ -31,9 +31,14 @@ interface TextBlockProps {
 function TextBlock({ label, text }: TextBlockProps) {
   if (!text) return null;
   return (
-    <div className="mt-2">
-      <div className="text-xs font-medium text-text-dim mb-1">{label}</div>
-      <div className="text-xs font-mono whitespace-pre-wrap break-words bg-bg rounded p-2 text-text-muted max-h-64 overflow-y-auto border border-border">
+    <div className="mt-3">
+      <div className="exhibit-label mb-1">{label}</div>
+      <div
+        className="max-h-64 overflow-y-auto whitespace-pre-wrap break-words border border-border bg-transparent p-2 font-mono text-xs text-text-muted"
+        tabIndex={0}
+        role="region"
+        aria-label={`${label}, scrollable`}
+      >
         {text}
       </div>
     </div>
@@ -46,17 +51,14 @@ interface StageCardSkeletonProps {
 
 function StageCardSkeleton({ label: _label }: StageCardSkeletonProps) {
   return (
-    <div className="border border-border rounded-lg p-3 bg-bg-elevated animate-pulse">
+    <div className="border border-border bg-bg-elevated p-3" aria-busy="true">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-5 w-24 bg-border rounded" />
-        </div>
-        <div className="h-4 w-20 bg-border rounded" />
+        <div className="skeleton h-4 w-24" />
+        <div className="skeleton h-3 w-16" />
       </div>
-      <div className="mt-3 space-y-3">
-        <div className="h-4 w-1/4 bg-border rounded" />
-        <div className="h-4 w-1/3 bg-border rounded" />
-        <div className="h-20 w-full bg-border rounded" />
+      <div className="mt-3 space-y-2">
+        <div className="skeleton h-3 w-1/4" />
+        <div className="skeleton h-16 w-full" />
       </div>
     </div>
   );
@@ -79,27 +81,25 @@ export function StageCard({ stage, loading = false }: StageCardProps) {
   }
 
   return (
-    <div className="border border-border rounded-lg p-3 bg-bg-elevated transition-shadow hover:shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm text-text">{label}</span>
+    <div className="border border-border bg-bg-elevated p-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <h4 className="font-mono text-sm font-medium text-text">{label}</h4>
           {stage.status === 'error' && (
-            <span className="inline-flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 font-medium">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              Error
-            </span>
+            <span className="badge badge-error">error</span>
           )}
         </div>
-        <span className="text-xs text-text-dim tabular-nums font-mono">{stage.duration_ms.toFixed(2)} ms</span>
+        <span className="meta num">{stage.duration_ms.toFixed(2)} ms</span>
       </div>
 
       {stage.error && (
-        <div className="mt-2 p-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded text-xs text-rose-700 dark:text-rose-300" role="alert">
-          <div className="font-medium mb-0.5">Error:</div>
-          <div>{stage.error}</div>
-        </div>
+        <p
+          className="mt-2 border px-2 py-1.5 text-xs"
+          style={{ borderColor: 'var(--color-error)', color: 'var(--color-error)' }}
+          role="alert"
+        >
+          {stage.error}
+        </p>
       )}
 
       {/* Stage-specific outputs */}
@@ -107,16 +107,20 @@ export function StageCard({ stage, loading = false }: StageCardProps) {
         <JsonView data={stage.input} />
       )}
       {rewritten && (
-        <div className="mt-2">
-          <div className="text-xs font-medium text-text-dim mb-1">Rewritten query</div>
-          <div className="text-sm font-mono text-text-muted bg-bg rounded p-2 border border-border">
+        <div className="mt-3">
+          <div className="exhibit-label mb-1">rewritten query</div>
+          <div className="border border-border p-2 font-mono text-xs text-text-muted">
             {rewritten}
           </div>
         </div>
       )}
-      {hasCandidates && <ChunkTable candidates={stage.candidates} />}
-      {context && <TextBlock label="Final context (FR4)" text={context} />}
-      {answer && <TextBlock label="Generated answer (FR5)" text={answer} />}
+      {hasCandidates && (
+        <div className="mt-3">
+          <ChunkTable candidates={stage.candidates} />
+        </div>
+      )}
+      {context && <TextBlock label="assembled context" text={context} />}
+      {answer && <TextBlock label="answer" text={answer} />}
     </div>
   );
 }

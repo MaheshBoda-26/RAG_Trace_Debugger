@@ -188,23 +188,24 @@ export const INTENT_LABELS: Record<string, string> = {
   OTHER: 'Other',
 };
 
+/*
+ * Colour encoding is expressed as CSS custom properties, not Tailwind palettes.
+ * Intent is metadata, so every intent pill uses the same neutral treatment —
+ * the risk profile carries the colour encoding, which keeps the encoding
+ * meaningful instead of decorative. Both themes resolve from index.css.
+ */
 export const INTENT_COLORS: Record<string, string> = {
-  FACT_LOOKUP:
-    'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-900/40 dark:text-sky-300 dark:border-sky-700',
-  PROCEDURE:
-    'bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-900/40 dark:text-violet-300 dark:border-violet-700',
-  COMPARISON:
-    'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/40 dark:text-cyan-300 dark:border-cyan-700',
-  SUMMARIZATION:
-    'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300 dark:bg-fuchsia-900/40 dark:text-fuchsia-300 dark:border-fuchsia-700',
-  OTHER:
-    'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-700',
+  FACT_LOOKUP: 'var(--color-text-muted)',
+  PROCEDURE: 'var(--color-text-muted)',
+  COMPARISON: 'var(--color-text-muted)',
+  SUMMARIZATION: 'var(--color-text-muted)',
+  OTHER: 'var(--color-text-muted)',
 };
 
 export const RISK_COLORS: Record<RiskLevel, string> = {
-  high: 'bg-rose-500',
-  medium: 'bg-amber-400',
-  low: 'bg-emerald-500',
+  high: 'var(--color-error)',
+  medium: 'var(--color-warning)',
+  low: 'var(--color-success)',
 };
 
 export const FRAMEWORK_LABELS: Record<Framework, string> = {
@@ -224,19 +225,22 @@ export const STAGE_ORDER: StageName[] = [
   'generation',
 ];
 
+/* Machine names, not prose. The UI, the JSON on disk and the API all use the
+   same vocabulary, so there is no translation step to get wrong. */
 export const STAGE_LABELS: Record<StageName, string> = {
-  query_rewrite: 'Query Rewrite',
-  retrieval: 'Retrieval',
-  rerank: 'Rerank',
-  assembly: 'Context Assembly',
-  generation: 'Generation',
+  query_rewrite: 'query_rewrite',
+  retrieval: 'retrieval',
+  rerank: 'rerank',
+  assembly: 'assembly',
+  generation: 'generation',
 };
 
+/** The failure ramp reads copper → rust → blood, derived from the brand. */
 export const FAILURE_COLORS: Record<FailureStage, string> = {
-  none: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700',
-  query_rewrite: 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-900/40 dark:text-sky-300 dark:border-sky-700',
-  retrieval: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700',
-  rerank: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700',
-  assembly: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-700',
-  generation: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-700',
+  none: 'var(--color-success)',
+  query_rewrite: 'var(--color-stage-query)',
+  retrieval: 'var(--color-stage-retrieval)',
+  rerank: 'var(--color-stage-rerank)',
+  assembly: 'var(--color-stage-assembly)',
+  generation: 'var(--color-stage-generation)',
 };

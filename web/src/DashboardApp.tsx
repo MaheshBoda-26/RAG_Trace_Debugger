@@ -1,12 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { api, deleteTraces } from './api/client';
-import type {
-  FailureStage,
-  Framework,
-  HealResponse,
-  Trace,
-  TraceSummary,
-} from './types/trace';
+import type { FailureStage, Framework, HealResponse, Trace, TraceSummary } from './types/trace';
 import { QueryList } from './components/QueryList';
 import { TraceTimeline } from './components/TraceTimeline';
 import { ComparisonView } from './components/ComparisonView';
@@ -14,39 +10,77 @@ import { EvalPanel } from './components/EvalPanel';
 
 type Tab = 'debugger' | 'eval' | 'corpus';
 
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'debugger', label: 'case files' },
+  { id: 'eval', label: 'batch review' },
+  { id: 'corpus', label: 'corpus' },
+];
+
+type Health = {
+  gemini_enabled: boolean;
+  metrics?: {
+    uptime_seconds: number;
+    total_queries_served: number;
+    error_count: number;
+    avg_overhead_ms: number;
+  };
+  circuit_breaker?: { state: string; consecutive_failures: number };
+};
+
+function HealthPill({ health }: { health: Health | null }) {
+  if (!health) return null;
+  const live = health.gemini_enabled;
+  const breaker = health.circuit_breaker;
+  return (
+    <span className="flex items-center gap-2">
+      <span
+        className="badge"
+        style={{ color: live ? 'var(--color-success)' : 'var(--color-warning)' }}
+      >
+        <span
+          className="inline-block h-1.5 w-1.5"
+          style={{ backgroundColor: 'currentColor' }}
+          aria-hidden="true"
+        />
+        {live ? 'gemini live' : 'mock generator'}
+      </span>
+      {breaker && breaker.state !== 'closed' && (
+        <span className="badge badge-error">breaker {breaker.state}</span>
+      )}
+    </span>
+  );
+}
+
 export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [traces, setTraces] = useState<TraceSummary[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('case'));
   const [trace, setTrace] = useState<Trace | null>(null);
   const [filter, setFilter] = useState<FailureStage | 'all'>('all');
   const [frameworkFilter, setFrameworkFilter] = useState<Framework | 'all'>('all');
-  const [health, setHealth] = useState<{
-    gemini_enabled: boolean;
-    metrics?: { uptime_seconds: number; total_queries_served: number; error_count: number; avg_overhead_ms: number };
-    circuit_breaker?: { state: string; consecutive_failures: number };
-  } | null>(null);
+  const [caseQuery, setCaseQuery] = useState('');
+  const [health, setHealth] = useState<Health | null>(null);
   const [healData, setHealData] = useState<HealResponse | null>(null);
 
   const [queryText, setQueryText] = useState('');
   const [queryTerms, setQueryTerms] = useState('');
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const loadTraces = useCallback(async () => {
     try {
       const list = await api.listTraces(filter === 'all' ? undefined : filter);
       setTraces(list);
-      if (list.length && !selectedId) {
-        setSelectedId(list[0].query_id);
-      }
+      setSelectedId((current) => current ?? list[0]?.query_id ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'failed to load traces');
+      setError(e instanceof Error ? e.message : 'failed to load case files');
     }
-  }, [filter, selectedId]);
+  }, [filter]);
 
   useEffect(() => {
-    api.health().then(setHealth).catch(() => { });
+    api.health().then(setHealth).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -61,12 +95,59 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
     }
     api
       .getTrace(selectedId)
-      .then((t) => {
-        setTrace(t);
+      .then((loaded) => {
+        setTrace(loaded);
         setHealData(null);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'failed to load trace'));
+      .catch((e) => setError(e instanceof Error ? e.message : 'failed to load case file'));
   }, [selectedId]);
+
+  // Client-side framework and text filtering (the API filters by stage only).
+  const visibleTraces = traces
+    .filter((t) => (frameworkFilter === 'all' ? true : (t.framework ?? 'native') === frameworkFilter))
+    .filter((t) => {
+      const needle = caseQuery.trim().toLowerCase();
+      if (!needle) return true;
+      return `${t.query_id} ${t.query}`.toLowerCase().includes(needle);
+    });
+
+  const moveSelection = useCallback(
+    (delta: number) => {
+      if (visibleTraces.length === 0) return;
+      const index = visibleTraces.findIndex((t) => t.query_id === selectedId);
+      const next = visibleTraces[Math.min(visibleTraces.length - 1, Math.max(0, index + delta))];
+      if (next) setSelectedId(next.query_id);
+    },
+    [visibleTraces, selectedId],
+  );
+
+  // Keyboard-first: j/k walk the case list, / focuses search, Esc leaves search.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable;
+      if (typing) {
+        if (event.key === 'Escape') target?.blur();
+        return;
+      }
+      if (tab !== 'debugger' || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === 'j') {
+        event.preventDefault();
+        moveSelection(1);
+      } else if (event.key === 'k') {
+        event.preventDefault();
+        moveSelection(-1);
+      } else if (event.key === '/') {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [moveSelection, tab]);
 
   async function runQuery(e: React.FormEvent) {
     e.preventDefault();
@@ -78,9 +159,10 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean);
-      const t = await api.runQuery({ query: queryText, key_terms });
-      setTrace(t);
-      setSelectedId(t.query_id);
+      const created = await api.runQuery({ query: queryText, key_terms });
+      setTrace(created);
+      setSelectedId(created.query_id);
+      setCaseQuery('');
       await loadTraces();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'query failed');
@@ -98,88 +180,106 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
     setHealData(null);
   }
 
-  // Client-side framework filter (the API filters by failure stage only).
-  const visibleTraces =
-    frameworkFilter === 'all'
-      ? traces
-      : traces.filter((t) => (t.framework ?? 'native') === frameworkFilter);
+  function selectCase(id: string) {
+    setSelectedId(id);
+    setSearchParams({ case: id }, { replace: true });
+  }
 
   return (
     <div className="min-h-screen bg-bg text-text">
-      <header className="border-b border-border bg-bg-elevated">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold">RAG Trace Debugger</h1>
-            {health && (
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full border ${health.gemini_enabled
-                    ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
-                    : 'border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10'
-                  }`}
-              >
-                {health.gemini_enabled ? 'Gemini live' : 'mock fallback'}
-              </span>
-            )}
+      <header className="sticky top-14 z-30 hairline-b bg-bg/95 backdrop-blur md:top-16">
+        <div className="container flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3">
+          <div className="flex items-center gap-4">
+            <h1 className="font-display text-base font-semibold tracking-tight">Case files</h1>
+            <HealthPill health={health} />
           </div>
-          <nav className="flex gap-1">
-            {(['debugger', 'eval', 'corpus'] as Tab[]).map((t) => (
+
+          <nav className="flex items-center gap-6" role="tablist" aria-label="Surfaces">
+            {TABS.map((item) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`text-sm px-3 py-1 rounded-md transition-colors capitalize ${tab === t
-                    ? 'bg-primary text-white font-medium'
-                    : 'text-text-muted hover:text-text hover:bg-bg-elevated'
-                  }`}
+                key={item.id}
+                role="tab"
+                aria-selected={tab === item.id}
+                onClick={() => setTab(item.id)}
+                className={`nav-link relative ${tab === item.id ? 'active' : ''}`}
               >
-                {t === 'debugger' ? 'Debugger' : t === 'eval' ? 'Evaluation' : 'Corpus'}
+                {item.label}
+                {tab === item.id && (
+                  <motion.span
+                    layoutId="tab-underline"
+                    className="absolute left-0 right-0 -bottom-0.5 h-px bg-primary"
+                    transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+                  />
+                )}
               </button>
             ))}
           </nav>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-4">
+      {/* Not a <main>: Layout already owns the document's main landmark. */}
+      <div className="container py-5">
         {error && (
-          <div className="mb-4 text-sm text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded p-2">
+          <p
+            className="mb-4 border px-3 py-2 text-sm"
+            style={{ borderColor: 'var(--color-error)', color: 'var(--color-error)' }}
+            role="alert"
+          >
             {error}
-          </div>
+          </p>
         )}
 
         {tab === 'debugger' && (
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
-            {/* Left rail */}
-            <aside className="space-y-3">
-              <form onSubmit={runQuery} className="border border-border rounded-lg p-3 bg-bg-elevated space-y-2">
-                <label className="block text-xs font-medium text-text-muted">
-                  Run a query
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
+            <aside className="space-y-4">
+              <form onSubmit={runQuery} className="border border-border bg-bg-elevated p-3">
+                <label htmlFor="case-query" className="exhibit-label block">
+                  run a case
                 </label>
                 <textarea
+                  id="case-query"
                   value={queryText}
                   onChange={(e) => setQueryText(e.target.value)}
                   placeholder="Ask something about Northwind SaaS…"
                   rows={2}
-                  className="w-full text-sm rounded border border-border bg-bg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary text-text placeholder:text-text-dim"
+                  className="mt-2 w-full border border-border bg-transparent px-2 py-1 font-mono text-xs text-text placeholder:text-text-dim focus:outline-none"
                 />
+                <label htmlFor="case-terms" className="exhibit-label mt-3 block">
+                  key terms · optional
+                </label>
                 <input
+                  id="case-terms"
                   value={queryTerms}
                   onChange={(e) => setQueryTerms(e.target.value)}
-                  placeholder="key terms (comma-separated, optional)"
-                  className="w-full text-xs rounded border border-border bg-bg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary text-text placeholder:text-text-dim"
+                  placeholder="comma-separated"
+                  className="mt-2 w-full border border-border bg-transparent px-2 py-1 font-mono text-xs text-text placeholder:text-text-dim focus:outline-none"
                 />
-                <button
-                  type="submit"
-                  disabled={running}
-                  className="w-full text-sm px-3 py-1.5 rounded bg-primary text-white hover:bg-primary-hover disabled:opacity-50 font-medium transition-colors"
-                >
-                  {running ? 'Running…' : 'Run query'}
+                <button type="submit" disabled={running} className="btn btn-primary mt-3 w-full">
+                  {running ? 'tracing…' : 'run traced case'}
                 </button>
               </form>
 
-              <div className="border border-border rounded-lg bg-bg-elevated overflow-hidden h-[60vh]">
+              <div className="border border-border bg-bg-elevated">
+                <div className="hairline-b p-3">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <label htmlFor="case-search" className="exhibit-label">
+                      case index
+                    </label>
+                    <span className="meta num">{visibleTraces.length}</span>
+                  </div>
+                  <input
+                    id="case-search"
+                    ref={searchRef}
+                    value={caseQuery}
+                    onChange={(e) => setCaseQuery(e.target.value)}
+                    placeholder="filter cases…  /"
+                    className="mt-2 w-full border border-border bg-transparent px-2 py-1 font-mono text-xs text-text placeholder:text-text-dim focus:outline-none"
+                  />
+                </div>
                 <QueryList
                   traces={visibleTraces}
                   selectedId={selectedId}
-                  onSelect={setSelectedId}
+                  onSelect={selectCase}
                   filter={filter}
                   onFilter={setFilter}
                   frameworkFilter={frameworkFilter}
@@ -187,48 +287,57 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
                 />
               </div>
 
-              <button
-                onClick={onClear}
-                className="w-full text-xs text-text-dim hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
-              >
-                Clear all traces
-              </button>
+              <div className="flex items-center justify-between gap-3">
+                <span className="meta">
+                  <kbd>j</kbd>/<kbd>k</kbd> navigate · <kbd>/</kbd> search · <kbd>⌘K</kbd> surfaces
+                </span>
+                <button onClick={onClear} className="btn btn-ghost btn-sm">
+                  clear
+                </button>
+              </div>
             </aside>
 
-            {/* Main pane */}
-            <section>
+            <section role="tabpanel" aria-label="Selected case file">
               {trace ? (
                 <div>
-                  <div className="mb-3">
-                    <div className="font-mono text-xs text-text-dim mb-0.5">{trace.query_id}</div>
-                    <h2 className="text-base font-medium text-text">{trace.query}</h2>
+                  <div className="mb-4">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <span className="meta">{trace.query_id}</span>
+                      <span className="exhibit-label">
+                        {trace.framework ?? 'native'} · {trace.stages.length} exhibits
+                      </span>
+                    </div>
+                    <h2 className="mt-1 text-text">{trace.query}</h2>
                   </div>
+
                   {healData && (
-                    <div className="mb-4" role="region" aria-label="Self-healing comparison">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold text-text">Self-healing comparison</h3>
+                    <div className="mb-6 border border-border bg-bg-elevated p-4" role="region" aria-label="Re-test result">
+                      <div className="mb-4 flex items-center justify-between gap-4">
+                        <h3 className="exhibit-label">re-test record</h3>
                         <button
                           onClick={() => setHealData(null)}
-                          className="text-xs px-2 py-1 rounded border border-border text-text-muted hover:bg-bg-elevated transition-colors"
+                          className="btn btn-ghost btn-sm"
                         >
-                          Close comparison
+                          close
                         </button>
                       </div>
                       <ComparisonView data={healData} />
                     </div>
                   )}
+
                   <TraceTimeline
                     trace={trace}
                     onHealed={(response) => {
                       setHealData(response);
-                      // Refresh the list so the healed trace shows up.
                       loadTraces();
                     }}
                   />
                 </div>
               ) : (
-                <div className="border border-dashed border-border rounded-lg p-12 text-center text-text-dim">
-                  Select a traced query or run a new one to see its stage-by-stage timeline.
+                <div className="border border-dashed border-border p-16 text-center">
+                  <p className="text-sm text-text-muted">
+                    No case selected. Run a query or pick one from the index.
+                  </p>
                 </div>
               )}
             </section>
@@ -236,55 +345,67 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
         )}
 
         {tab === 'eval' && (
-          <div className="max-w-4xl mx-auto space-y-4">
+          <div role="tabpanel" aria-label="Batch review" className="mx-auto max-w-5xl">
             <EvalPanel />
           </div>
         )}
 
-        {tab === 'corpus' && <CorpusView />}
-      </main>
-
-      <footer className="max-w-7xl mx-auto px-4 py-4 text-center text-xs text-text-dim">
-        RAG Trace Debugger · diagnostic tool with self-healing suggestions · localizes failure, proposes parameter fixes
-        {health?.metrics && (
-          <span className="block mt-1">
-            uptime {Math.round(health.metrics.uptime_seconds)}s · {health.metrics.total_queries_served} queries served ·{' '}
-            {health.metrics.error_count} errors · avg overhead {health.metrics.avg_overhead_ms} ms
-          </span>
+        {tab === 'corpus' && (
+          <div role="tabpanel" aria-label="Corpus">
+            <CorpusView />
+          </div>
         )}
+      </div>
+
+      <footer className="container py-6">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 hairline-t pt-4">
+          <span className="meta">
+            localizes failure — proposes parameter fixes, never rewrites your pipeline
+          </span>
+          {health?.metrics && (
+            <span className="meta num ml-auto">
+              uptime {Math.round(health.metrics.uptime_seconds)}s · {health.metrics.total_queries_served} cases ·{' '}
+              {health.metrics.error_count} errors · avg tracer {health.metrics.avg_overhead_ms} ms
+            </span>
+          )}
+        </div>
       </footer>
     </div>
   );
 }
 
 function CorpusView() {
-  const [corpus, setCorpus] = useState<{ doc_count: number; chunk_count: number; docs: any[] } | null>(null);
+  const [corpus, setCorpus] = useState<{ doc_count: number; chunk_count: number; docs: any[] } | null>(
+    null,
+  );
 
   useEffect(() => {
-    api.getCorpus().then(setCorpus).catch(() => { });
+    api.getCorpus().then(setCorpus).catch(() => {});
   }, []);
 
-  if (!corpus) return <p className="text-sm text-text-dim">Loading corpus…</p>;
+  if (!corpus) return <p className="meta">loading corpus…</p>;
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-text-muted">
-        {corpus.doc_count} docs · {corpus.chunk_count} chunks
-      </p>
+    <div className="space-y-6">
+      <div className="flex items-baseline gap-6 hairline-b pb-3">
+        <span className="exhibit-label">corpus</span>
+        <span className="meta num">{corpus.doc_count} docs</span>
+        <span className="meta num">{corpus.chunk_count} chunks</span>
+      </div>
       {corpus.docs.map((doc) => (
-        <div key={doc.doc_id} className="border border-border rounded-lg p-3 bg-bg-elevated">
-          <h3 className="text-sm font-mono font-medium text-text mb-2">{doc.doc_id}</h3>
-          <div className="space-y-2">
-            {doc.chunks.map((c: any) => (
-              <div key={c.chunk_id} className="text-xs">
-                <div className="font-mono text-text-dim mb-0.5">{c.chunk_id}</div>
-                <pre className="whitespace-pre-wrap font-mono text-text-muted bg-bg border border-border rounded p-2">
-                  {c.text}
+        <section key={doc.doc_id}>
+          <h2 className="font-mono text-sm text-text">{doc.doc_id}</h2>
+          <div className="mt-2 space-y-2">
+            {doc.chunks.map((chunk: any) => (
+              <div key={chunk.chunk_id} className="border-t border-border pt-2">
+                <div className="meta">{chunk.chunk_id}</div>
+                <pre className="mt-1 whitespace-pre-wrap font-mono text-xs text-text-muted">
+                  {chunk.text}
                 </pre>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       ))}
     </div>
   );

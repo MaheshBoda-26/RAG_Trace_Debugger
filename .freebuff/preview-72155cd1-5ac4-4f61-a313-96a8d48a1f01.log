@@ -270,3 +270,69 @@ INFO:     127.0.0.1:50842 - "GET /api/traces/q12 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:50841 - "GET /api/traces HTTP/1.1" 200 OK
 INFO:     127.0.0.1:50849 - "POST /api/query/heal HTTP/1.1" 200 OK
 INFO:     127.0.0.1:50851 - "GET /api/traces HTTP/1.1" 200 OK
+11:05:27 PM [vite] (client) hmr update /src/index.css
+11:05:31 PM [vite] (client) page reload index.html
+11:06:08 PM [vite] (client) hmr update /src/components/Layout.tsx, /src/index.css
+11:06:24 PM [vite] vite.config.ts changed, restarting server...
+11:06:25 PM [vite] server restarted.
+11:06:28 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+11:06:35 PM [vite] vite.config.ts changed, restarting server...
+11:06:35 PM [vite] server restarted.
+INFO:     127.0.0.1:51276 - "GET /api/health HTTP/1.1" 200 OK
+11:07:42 PM [vite] (client) hmr update /src/index.css, /src/components/LandingTraceTimeline.tsx
+11:08:31 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+11:09:53 PM [vite] (client) hmr update /src/index.css
+11:10:01 PM [vite] (client) hmr update /src/index.css
+11:10:06 PM [vite] (client) hmr update /src/index.css
+11:10:17 PM [vite] (client) hmr update /src/index.css
+11:10:28 PM [vite] (client) hmr update /src/index.css
+INFO:     127.0.0.1:51385 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51387 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51386 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51388 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51391 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51390 - "GET /api/traces HTTP/1.1" 200 OK
+11:11:04 PM [vite] (client) hmr update /src/DashboardApp.tsx, /src/index.css
+INFO:     127.0.0.1:51399 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51402 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51404 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51400 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51406 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51408 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51410 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
+11:11:11 PM [vite] (client) hmr update /src/index.css, /src/components/QueryList.tsx
+11:11:12 PM [vite] (client) hmr invalidate /src/components/QueryList.tsx Could not Fast Refresh (export removed)
+11:11:12 PM [vite] (client) hmr update /src/DashboardApp.tsx
+INFO:     127.0.0.1:51416 - "GET /api/traces HTTP/1.1" 200 OK
+11:11:29 PM [vite] (client) hmr update /src/index.css, /src/components/EvalPanel.tsx
+11:11:40 PM [vite] (client) hmr update /src/index.css, /src/components/ChunkTable.tsx
+11:11:48 PM [vite] (client) hmr update /src/index.css, /src/components/StageCard.tsx
+11:11:59 PM [vite] (client) hmr update /src/index.css
+11:12:14 PM [vite] (client) hmr update /src/index.css
+11:12:28 PM [vite] (client) hmr update /src/index.css, /src/components/FeatureCard.tsx
+11:12:28 PM [vite] (client) hmr update /src/index.css
+INFO:     127.0.0.1:51456 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51458 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51457 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51459 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51460 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51470 - "GET /api/eval/results HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51472 - "GET /api/eval/results HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51474 - "GET /api/corpus HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51476 - "GET /api/corpus HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51478 - "GET /api/eval/results HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51480 - "GET /api/eval/results HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51487 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51490 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51488 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51492 - "GET /api/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51494 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
+11:13:31 PM [vite] (client) hmr update /src/index.css
+11:13:34 PM [vite] (client) hmr update /src/index.css, /src/components/QueryList.tsx
+11:13:38 PM [vite] (client) hmr update /src/DashboardApp.tsx, /src/index.css
+11:13:45 PM [vite] (client) hmr update /src/index.css, /src/components/ChunkTable.tsx
+11:13:49 PM [vite] (client) hmr update /src/index.css, /src/components/EvalPanel.tsx
+11:13:52 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+11:14:00 PM [vite] (client) hmr update /src/pages/Features.tsx, /src/index.css
+11:14:04 PM [vite] (client) hmr update /src/index.css, /src/components/StageCard.tsx
+11:14:09 PM [vite] (client) hmr update /src/index.css, /src/components/ComparisonView.tsx

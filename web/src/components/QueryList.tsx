@@ -1,5 +1,4 @@
 import {
-  FAILURE_COLORS,
   FRAMEWORK_LABELS,
   type FailureStage,
   type Framework,
@@ -8,72 +7,67 @@ import {
 import { FailureBadge } from './FailureBadge';
 
 const FILTERS: { label: string; value: FailureStage | 'all' }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'No failure', value: 'none' },
-  { label: 'Retrieval', value: 'retrieval' },
-  { label: 'Rerank', value: 'rerank' },
-  { label: 'Assembly', value: 'assembly' },
-  { label: 'Generation', value: 'generation' },
+  { label: 'all', value: 'all' },
+  { label: 'clean', value: 'none' },
+  { label: 'retrieval', value: 'retrieval' },
+  { label: 'rerank', value: 'rerank' },
+  { label: 'assembly', value: 'assembly' },
+  { label: 'generation', value: 'generation' },
 ];
 
 const FRAMEWORK_FILTERS: { label: string; value: Framework | 'all' }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Native', value: 'native' },
-  { label: 'LangChain', value: 'langchain' },
-  { label: 'LlamaIndex', value: 'llamaindex' },
-  { label: 'Custom SDK', value: 'custom' },
+  { label: 'all', value: 'all' },
+  { label: 'native', value: 'native' },
+  { label: 'langchain', value: 'langchain' },
+  { label: 'llamaindex', value: 'llamaindex' },
+  { label: 'custom sdk', value: 'custom' },
 ];
 
-const FRAMEWORK_ICONS: Record<Framework, React.ReactNode> = {
-  native: (
-    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-    </svg>
-  ),
-  langchain: (
-    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5m8.5-6.5l1.5-1.5a4 4 0 015.656 5.656l-3 3a4 4 0 01-5.656 0" />
-    </svg>
-  ),
-  llamaindex: (
-    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-    </svg>
-  ),
-  custom: (
-    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-    </svg>
-  ),
-};
+/** Framework is metadata, not a verdict — one glyph per origin, no colour. */
+function FrameworkMark({ framework }: { framework: Framework }) {
+  const label = FRAMEWORK_LABELS[framework];
+  const paths: Record<Framework, string> = {
+    native: 'M4 7h16M4 12h16M4 17h10',
+    langchain: 'M9 15l3-3 3 3M9 9l3 3 3-3',
+    llamaindex: 'M6 6h12v12H6zM10 6v12',
+    custom: 'M8 9l-3 3 3 3M16 9l3 3-3 3',
+  };
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-text-dim"
+      title={label}
+      aria-label={label}
+    >
+      <svg
+        className="h-3 w-3"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d={paths[framework]} />
+      </svg>
+    </span>
+  );
+}
+
+function CaseRowSkeleton() {
+  return (
+    <div className="p-3">
+      <div className="skeleton h-3 w-24" />
+      <div className="skeleton mt-2 h-3 w-full" />
+      <div className="skeleton mt-2 h-3 w-2/3" />
+    </div>
+  );
+}
 
 function QueryListSkeleton() {
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-3 border-b border-border animate-pulse">
-        <div className="h-5 w-32 bg-border rounded mb-2" />
-        <div className="flex flex-wrap gap-1">
-          {[...Array(7)].map((_, i) => (
-            <div key={i} className="h-6 w-20 bg-border rounded-full" />
-          ))}
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <ul>
-          {[...Array(6)].map((_, i) => (
-            <li key={i}>
-              <div className="w-full px-3 py-2.5 border-b border-border animate-pulse">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="h-4 w-20 bg-border rounded" />
-                  <div className="h-6 w-24 bg-border rounded-full" />
-                </div>
-                <div className="h-4 w-full bg-border rounded" />
-                <div className="mt-1 h-4 w-3/4 bg-border rounded" />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <div aria-busy="true">
+      {[...Array(5)].map((_, index) => (
+        <CaseRowSkeleton key={index} />
+      ))}
     </div>
   );
 }
@@ -99,45 +93,39 @@ export function QueryList({
   onFrameworkFilter,
   loading = false,
 }: QueryListProps) {
-  if (loading) {
-    return <QueryListSkeleton />;
-  }
+  if (loading) return <QueryListSkeleton />;
+
+  const chip = (active: boolean) =>
+    `border px-2 py-0.5 font-mono text-[0.6875rem] transition-colors ${
+      active
+        ? 'border-primary text-primary'
+        : 'border-border text-text-dim hover:text-text'
+    }`;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-3 border-b border-border">
-        <h2 className="text-sm font-semibold text-text mb-2">
-          Traced Queries ({traces.length})
-        </h2>
-        <div className="flex flex-wrap gap-1 mb-1.5" role="group" aria-label="Filter by failure stage">
-          {FILTERS.map((f) => (
+    <div className="flex h-[52vh] flex-col">
+      <div className="hairline-b px-3 pb-3">
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Filter by failure stage">
+          {FILTERS.map((item) => (
             <button
-              key={f.value}
-              onClick={() => onFilter(f.value)}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-bg ${
-                filter === f.value
-                  ? 'bg-primary text-white border-primary shadow-sm'
-                  : 'bg-transparent text-text-muted border-border hover:bg-bg-elevated hover:text-text'
-              }`}
-              aria-pressed={filter === f.value}
+              key={item.value}
+              onClick={() => onFilter(item.value)}
+              className={chip(filter === item.value)}
+              aria-pressed={filter === item.value}
             >
-              {f.label}
+              {item.label}
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Filter by framework">
-          {FRAMEWORK_FILTERS.map((f) => (
+        <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label="Filter by framework">
+          {FRAMEWORK_FILTERS.map((item) => (
             <button
-              key={f.value}
-              onClick={() => onFrameworkFilter(f.value)}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-bg ${
-                frameworkFilter === f.value
-                  ? 'bg-primary text-white border-primary shadow-sm'
-                  : 'bg-transparent text-text-muted border-border hover:bg-bg-elevated hover:text-text'
-              }`}
-              aria-pressed={frameworkFilter === f.value}
+              key={item.value}
+              onClick={() => onFrameworkFilter(item.value)}
+              className={chip(frameworkFilter === item.value)}
+              aria-pressed={frameworkFilter === item.value}
             >
-              {f.label}
+              {item.label}
             </button>
           ))}
         </div>
@@ -145,55 +133,64 @@ export function QueryList({
 
       <div className="flex-1 overflow-y-auto">
         {traces.length === 0 ? (
-          <div className="p-4 text-center">
-            <svg className="w-12 h-12 mx-auto text-text-dim mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p className="text-sm text-text-dim">
-              No traces yet. Run the eval or submit a query.
-            </p>
+          <div className="p-5">
+            <p className="text-sm text-text-muted">No case files match.</p>
+            <p className="meta mt-1">Run the batch review, or submit a query above.</p>
           </div>
         ) : (
-          <ul role="listbox" aria-label="Traced queries">
-            {traces.map((t) => (
-              <li key={t.query_id}>
-                <button
-                  onClick={() => onSelect(t.query_id)}
-                  className={`w-full text-left px-3 py-2.5 border-b border-border hover:bg-bg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset ${
-                    selectedId === t.query_id
-                      ? 'bg-bg ring-1 ring-primary/30'
-                      : ''
-                  }`}
-                  role="option"
-                  aria-selected={selectedId === t.query_id}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-mono text-xs text-text-dim truncate max-w-[120px]">{t.query_id}</span>
-                    <span className="flex items-center gap-1.5">
-                      <span
-                        className="inline-flex items-center text-text-dim"
-                        title={FRAMEWORK_LABELS[t.framework ?? 'native']}
-                        aria-label={FRAMEWORK_LABELS[t.framework ?? 'native']}
-                      >
-                        {FRAMEWORK_ICONS[t.framework ?? 'native']}
+          <ul aria-label="Case files">
+            {traces.map((trace) => {
+              const selected = selectedId === trace.query_id;
+              const failed = trace.indicated_failure !== 'none';
+              return (
+                <li key={trace.query_id} className="border-b border-border">
+                  <button
+                    onClick={() => onSelect(trace.query_id)}
+                    className="relative w-full px-3 py-2.5 text-left transition-colors"
+                    style={{
+                      backgroundColor: selected
+                        ? 'color-mix(in oklab, var(--color-text) 5%, transparent)'
+                        : 'transparent',
+                    }}
+                    aria-current={selected ? 'true' : undefined}
+                  >
+                    {/* Status as a 2px left rail, not a coloured pill. */}
+                    <span
+                      className="absolute bottom-0 left-0 top-0 w-px"
+                      style={{
+                        backgroundColor: failed ? 'var(--color-error)' : 'var(--color-success)',
+                        opacity: selected ? 1 : 0.45,
+                      }}
+                      aria-hidden="true"
+                    />
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="meta truncate">{trace.query_id}</span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        <FrameworkMark framework={trace.framework ?? 'native'} />
+                        <FailureBadge stage={trace.indicated_failure} size="sm" showIcon={false} />
                       </span>
-                      <FailureBadge stage={t.indicated_failure} size="sm" />
                     </span>
-                  </div>
-                  <p className="text-sm text-text-muted line-clamp-2">{t.query}</p>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-text-dim">
-                    <span className="font-mono tabular-nums">{t.stage_count} stages</span>
-                    <span>·</span>
-                    <span className="font-mono tabular-nums">{t.total_duration_ms.toFixed(0)} ms</span>
-                  </div>
-                </button>
-              </li>
-            ))}
+                    <span className="mt-1 line-clamp-2 block text-sm text-text-muted">
+                      {trace.query}
+                    </span>
+                    <span className="meta mt-1 flex items-center gap-2">
+                      <span className="num">{trace.stage_count} exhibits</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="num">{trace.total_duration_ms.toFixed(0)} ms</span>
+                      {trace.intent && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>{trace.intent.toLowerCase()}</span>
+                        </>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
     </div>
   );
 }
-
-export { FAILURE_COLORS };

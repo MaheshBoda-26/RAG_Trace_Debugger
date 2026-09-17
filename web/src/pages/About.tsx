@@ -43,7 +43,7 @@ export function About() {
                   The <span className="text-primary">problem</span>
                 </h2>
               </header>
-              <div className="prose prose-invert max-w-none text-text-muted space-y-6">
+              <div className="space-y-5 text-text-muted measure">
                 <p>
                   Production RAG (Retrieval-Augmented Generation) systems fail silently. When a RAG-powered agent
                   gives a wrong or nonsensical answer, engineers currently have no reliable way to determine
@@ -71,11 +71,11 @@ export function About() {
 
             <article>
               <header className="mb-8">
-                <h2 className="font-display text-3xl mb-4">
+                <h2 className="mb-4">
                   The <span className="text-primary">solution</span>
                 </h2>
               </header>
-              <div className="prose prose-invert max-w-none text-text-muted space-y-6">
+              <div className="space-y-5 text-text-muted measure">
                 <p>
                   RAG Trace Debugger is a <strong>tracing and debugging layer</strong> that wraps an existing RAG
                   pipeline — without altering its core architecture — so that any engineer can select a query,
@@ -87,14 +87,14 @@ export function About() {
                   correct retrieval, reranking, or generation.
                 </p>
                 <h3 className="font-display text-xl text-text">Five pipeline stages are instrumented:</h3>
-                <table className="w-full border-collapse">
+                <table className="grid-table">
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left p-3 font-semibold text-text">Stage</th>
                       <th className="text-left p-3 font-semibold text-text">Captures</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody>
                     <tr>
                       <td className="p-3 font-mono text-primary">query_rewrite</td>
                       <td className="p-3 text-text-muted">Raw query, rewritten query</td>
@@ -127,11 +127,11 @@ export function About() {
 
             <article>
               <header className="mb-8">
-                <h2 className="font-display text-3xl mb-4">
+                <h2 className="mb-4">
                   Failure <span className="text-primary">localization</span>
                 </h2>
               </header>
-              <div className="prose prose-invert max-w-none text-text-muted space-y-6">
+              <div className="space-y-5 text-text-muted measure">
                 <p>
                   A deterministic heuristic ranks stages by likelihood of being the root cause.
                   <strong>Structural deficits</strong> (the needed information never reached the model) are checked
@@ -154,19 +154,19 @@ export function About() {
 
             <article>
               <header className="mb-8">
-                <h2 className="font-display text-3xl mb-4">
+                <h2 className="mb-4">
                   <span className="text-primary">Tech stack</span>
                 </h2>
               </header>
-              <div className="prose prose-invert max-w-none text-text-muted space-y-6">
-                <table className="w-full border-collapse">
+              <div className="space-y-5 text-text-muted measure">
+                <table className="grid-table">
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left p-3 font-semibold text-text">Layer</th>
                       <th className="text-left p-3 font-semibold text-text">Choice</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody>
                     <tr>
                       <td className="p-3 font-semibold text-text">Backend + trace core + pipeline</td>
                       <td className="p-3">Python 3.12 — FastAPI, pydantic, numpy, httpx</td>
@@ -206,11 +206,11 @@ export function About() {
 
             <article>
               <header className="mb-8">
-                <h2 className="font-display text-3xl mb-4">
+                <h2 className="mb-4">
                   <span className="text-primary">Demo corpus & evaluation</span>
                 </h2>
               </header>
-              <div className="prose prose-invert max-w-none text-text-muted space-y-6">
+              <div className="space-y-5 text-text-muted measure">
                 <p>
                   A fictional "Northwind SaaS" knowledge base: <strong>12 markdown docs</strong> (31 chunks) with
                   deliberately embedded failure conditions:
@@ -238,47 +238,58 @@ export function About() {
 
             <article>
               <header className="mb-8">
-                <h2 className="font-display text-3xl mb-4">
+                <h2 className="mb-4">
                   <span className="text-primary">Honest results</span>
                 </h2>
               </header>
-              <div className="prose prose-invert max-w-none text-text-muted space-y-6">
+              <div className="space-y-5 text-text-muted measure">
                 <p>
-                  Measured on the controlled test set (mock generator, no API key):
+                  Recorded run ({' '}
+                  <code className="code-inline">server/data/eval/results.json</code>, mock generator, no API
+                  key):
                 </p>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="card text-center p-6">
-                    <div className="text-4xl font-display font-bold text-success">100%</div>
-                    <div className="text-text-muted">Localization accuracy (15/15)</div>
-                  </div>
-                  <div className="card text-center p-6">
-                    <div className="text-4xl font-display font-bold text-primary">0.089 ms</div>
-                    <div className="text-text-muted">Avg tracing overhead</div>
-                  </div>
-                  <div className="card text-center p-6">
-                    <div className="text-4xl font-display font-bold text-primary">0.230 ms</div>
-                    <div className="text-text-muted">p95 tracing overhead</div>
-                  </div>
+                <div>
+                  {[
+                    ['localization accuracy', '15 / 15', 'single labeled set'],
+                    ['intent classification', '15 / 15', '14 of 15 cases are one class'],
+                    ['tracer bookkeeping', '0.053 ms avg', 'p95 0.114 ms · max 0.259 ms'],
+                  ].map(([label, value, scope]) => (
+                    <div
+                      key={label}
+                      className="flex items-baseline justify-between gap-6 border-t border-border py-2.5"
+                    >
+                      <span className="exhibit-label">{label}</span>
+                      <span className="flex items-baseline gap-3">
+                        <span className="meta">{scope}</span>
+                        <span className="num text-sm text-text">{value}</span>
+                      </span>
+                    </div>
+                  ))}
+                  <div className="border-t border-border" />
                 </div>
-                <div className="card p-6">
-                  <p className="text-text-muted">
-                    <strong>Caveat:</strong> 100% accuracy reflects a test set whose ground-truth labels were calibrated
-                    to this specific pipeline's behavior. The PRD explicitly states results on this controlled set
-                    may not generalize to arbitrary production RAG systems. The BM25-only mock run has no retrieval
-                    failures because BM25 is a full-corpus search; a dense+hybrid run with a live Gemini key may
-                    surface retrieval misses on low-overlap queries.
-                  </p>
-                </div>
+                <p>
+                  <strong>Caveats, stated plainly.</strong> The labels in this set were authored alongside
+                  the pipeline, so 15/15 measures internal consistency, not generalization. Rerank and
+                  assembly rest on one case each — read those as anecdotes. The overhead figure is the
+                  collector timing its own bookkeeping, not an end-to-end latency A/B. The BM25-only mock
+                  run surfaces no retrieval failures because BM25 searches the whole corpus; a dense+hybrid
+                  run with a live Gemini key may expose retrieval misses on low-overlap queries.
+                </p>
+                <p>
+                  <strong>The measurement that would settle it</strong> — agreement between the localizer
+                  and an independent annotator (κ) on a few hundred cases — is not taken yet. That gap is
+                  the honest next step, and it is listed as such rather than implied away.
+                </p>
               </div>
             </article>
 
             <article>
               <header className="mb-8">
-                <h2 className="font-display text-3xl mb-4">
+                <h2 className="mb-4">
                   <span className="text-primary">Constraints & limitations</span>
                 </h2>
               </header>
-              <div className="prose prose-invert max-w-none text-text-muted space-y-6">
+              <div className="space-y-5 text-text-muted measure">
                 <h3 className="font-display text-xl text-text">Constraints (9-day build window)</h3>
                 <ul className="list-disc list-inside space-y-2 pl-4">
                   <li>Single builder / small team scope</li>

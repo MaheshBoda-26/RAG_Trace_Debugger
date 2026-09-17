@@ -1,44 +1,72 @@
 @import "tailwindcss";
 
+/* The theme is explicit (html[data-theme]), not inherited from the OS. Without
+   this, every `dark:` utility would follow prefers-color-scheme and a visitor
+   on a light-mode system would get light utilities inside the dark theme. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ==========================================================================
+   RAG Trace Debugger — "Forensic Instrument" design system
+   --------------------------------------------------------------------------
+   Art direction: a laboratory case file. Ink + bone neutrals with a single
+   oxidized-copper accent; 1px hairlines instead of borders and shadows;
+   near-square geometry; tabular numerals everywhere a number is compared.
+
+   Token NAMES from the previous system are preserved on purpose so every
+   existing component repaints from this file alone.
+   ========================================================================== */
+
 @theme {
-  /* Fonts */
-  --font-display: "Space Grotesk", "JetBrains Mono", ui-monospace, monospace;
-  --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  /* ---------- Typefaces (self-hosted — see web/scripts/fetch-fonts.py) ---- */
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-body: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
-  /* Colors - Dark Mode (Primary) */
-  --color-bg: #050505;
-  --color-bg-elevated: #0F0F11;
-  --color-surface: #18181B;
-  --color-border: #27272A;
-  --color-text: #F4F4F5;
-  --color-text-muted: #D4D4D8;
-  --color-text-dim: #71717A;
+  /* ---------- Ink (dark, default) --------------------------------------- */
+  --color-bg: oklch(0.155 0.005 60);
+  --color-bg-elevated: oklch(0.19 0.006 58);
+  --color-surface: oklch(0.225 0.007 58);
+  --color-border: oklch(0.3 0.008 58);
+  --color-text: oklch(0.94 0.004 85);
+  --color-text-muted: oklch(0.78 0.005 80);
+  --color-text-dim: oklch(0.64 0.008 75);
 
-  /* Colors - Light Mode */
-  --color-bg-light: #FAFAFA;
-  --color-bg-elevated-light: #F4F4F5;
-  --color-surface-light: #FFFFFF;
-  --color-border-light: #E4E4E7;
-  --color-text-light: #09090B;
-  --color-text-muted-light: #3F3F46;
-  --color-text-dim-light: #71717A;
+  /* ---------- Bone (light) ---------------------------------------------- */
+  --color-bg-light: oklch(0.972 0.005 85);
+  --color-bg-elevated-light: oklch(0.995 0.003 85);
+  --color-surface-light: oklch(0.945 0.006 85);
+  --color-border-light: oklch(0.87 0.007 80);
+  --color-text-light: oklch(0.22 0.008 60);
+  --color-text-muted-light: oklch(0.42 0.01 60);
+  --color-text-dim-light: oklch(0.55 0.01 65);
 
-  /* Brand Colors */
-  --color-primary: #F97316;
-  --color-primary-hover: #EA580C;
-  --color-primary-light: #FFEDD5;
-  --color-secondary: #D97706;
-  --color-accent-cyan: #FB923C;
-  --color-accent-orange: #F97316;
+  /* ---------- Accent: oxidized copper ----------------------------------- */
+  --color-primary: oklch(0.72 0.14 52);
+  --color-primary-hover: oklch(0.78 0.145 55);
+  --color-primary-light: oklch(0.93 0.035 70);
+  --color-secondary: oklch(0.6 0.13 45);
+  /* Legacy names kept so old references resolve to brand values, not Tailwind. */
+  --color-accent-cyan: oklch(0.72 0.14 52);
+  --color-accent-orange: oklch(0.72 0.14 52);
 
-  /* Semantic Colors */
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-  --color-info: #3B82F6;
+  /* ---------- Verdict ramp (derived from the brand, not Tailwind) -------- */
+  --color-success: oklch(0.72 0.09 175); /* muted verdigris */
+  --color-warning: oklch(0.78 0.12 75); /* aged brass */
+  --color-error: oklch(0.68 0.17 28); /* dried blood */
+  --color-info: oklch(0.72 0.06 245); /* cold slate blue */
 
-  /* Spacing */
+  /* Failure-stage ramp: rust -> copper -> brass -> blood, so a failure reads
+     as part of the brand rather than a generic red alert. Lightness is held
+     above the AA floor because these are worn as 11px text: every value here
+     measures >= 4.6:1 on both ink backgrounds (verified with axe-core, and
+     re-checkable with the canvas probe in the run doc). */
+  --color-stage-query: oklch(0.68 0.07 250);
+  --color-stage-retrieval: oklch(0.67 0.15 35);
+  --color-stage-rerank: oklch(0.75 0.14 52);
+  --color-stage-assembly: oklch(0.81 0.12 72);
+  --color-stage-generation: oklch(0.69 0.18 22);
+
+  /* ---------- Rhythm ----------------------------------------------------- */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -48,45 +76,74 @@
   --space-3xl: 64px;
   --space-4xl: 96px;
 
-  /* Border Radius */
-  --radius-xl: 12px;
-  --radius-lg: 8px;
+  /* ---------- Geometry: near-square, hairlines only --------------------- */
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 3px;
+  --radius-2xl: 4px;
+  --radius-3xl: 6px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.1);
-  --shadow-elevated: 0 4px 6px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
-  --shadow-modal: 0 20px 25px rgba(0,0,0,0.3), 0 10px 10px rgba(0,0,0,0.15);
-  --shadow-floating: 0 25px 50px rgba(0,0,0,0.4);
-  --shadow-glow-primary: 0 4px 20px rgba(249,115,22,0.15);
+  /* ---------- Elevation: almost none ------------------------------------ */
+  --shadow-card: 0 1px 0 0 oklch(0 0 0 / 0.25);
+  --shadow-elevated: 0 2px 10px oklch(0 0 0 / 0.3);
+  --shadow-modal: 0 18px 44px oklch(0 0 0 / 0.5);
+  --shadow-floating: 0 24px 64px oklch(0 0 0 / 0.55);
+  /* Formerly a 20px orange glow. Now a crisp inset hairline ring — the
+     "premium" replacement for glow-on-hover. */
+  --shadow-glow-primary: inset 0 0 0 1px var(--color-primary);
 
-  /* Transitions */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-fast: 150ms;
-  --duration-normal: 250ms;
-  --duration-slow: 500ms;
-  --duration-entrance: 700ms;
+  /* ---------- Motion ----------------------------------------------------- */
+  --ease-out-expo: cubic-bezier(0.2, 0, 0, 1); /* repurposed: the "in" curve */
+  --ease-in-state: cubic-bezier(0.4, 0, 1, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --duration-slow: 300ms;
+  --duration-entrance: 600ms;
+
+  /* ---------- Role-named type scale ------------------------------------- */
+  --text-label: 0.6875rem; /* 11px — exhibit labels */
+  --text-meta: 0.75rem; /* 12px — ids, latencies, scores */
+  --text-body: 0.9375rem; /* 15px */
+  --text-lead: 1.125rem; /* 18px */
 }
 
-/* Light mode overrides */
-@media (prefers-color-scheme: light) {
-  :root {
-    --color-bg: var(--color-bg-light);
-    --color-bg-elevated: var(--color-bg-elevated-light);
-    --color-surface: var(--color-surface-light);
-    --color-border: var(--color-border-light);
-    --color-text: var(--color-text-light);
-    --color-text-muted: var(--color-text-muted-light);
-    --color-text-dim: var(--color-text-dim-light);
-  }
-}
-
+/* ==========================================================================
+   Themes — explicit, dark by default. No prefers-color-scheme auto-switch:
+   the product chooses its theme, and the choice persists.
+   ========================================================================== */
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: var(--color-bg-light);
+  --color-bg-elevated: var(--color-bg-elevated-light);
+  --color-surface: var(--color-surface-light);
+  --color-border: var(--color-border-light);
+  --color-text: var(--color-text-light);
+  --color-text-muted: var(--color-text-muted-light);
+  --color-text-dim: var(--color-text-dim-light);
+  --color-primary: oklch(0.5 0.14 45);
+  --color-primary-hover: oklch(0.44 0.14 42);
+  --color-primary-light: oklch(0.9 0.045 70);
+  --color-success: oklch(0.5 0.08 175);
+  --color-warning: oklch(0.55 0.11 70);
+  --color-error: oklch(0.5 0.17 28);
+  --color-info: oklch(0.5 0.08 245);
+  --color-stage-retrieval: oklch(0.5 0.16 35);
+  --color-stage-rerank: oklch(0.55 0.14 50);
+  --color-stage-assembly: oklch(0.55 0.12 68);
+  --color-stage-generation: oklch(0.46 0.17 22);
+  --color-stage-query: oklch(0.5 0.08 250);
+  --shadow-card: 0 1px 0 0 oklch(0 0 0 / 0.06);
 }
 
 * {
@@ -101,7 +158,9 @@ html {
   html {
     scroll-behavior: auto;
   }
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -114,30 +173,46 @@ body {
   font-family: var(--font-body);
   background-color: var(--color-bg);
   color: var(--color-text);
-  line-height: 1.65;
+  font-size: var(--text-body);
+  line-height: 1.6;
   min-height: 100vh;
 }
 
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
+/* ==========================================================================
+   Typography
+   ========================================================================== */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
-  font-weight: 700;
-  line-height: 1.15;
+  font-weight: 600;
+  font-optical-sizing: auto;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
   color: var(--color-text);
   text-wrap: balance;
 }
 
-h1 { font-size: clamp(3rem, 8vw, 6rem); line-height: 1.05; }
-h2 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.15; }
-h3 { font-size: clamp(1.5rem, 2.5vw, 2rem); line-height: 1.3; font-weight: 600; }
-
-p, li {
-  text-wrap: pretty;
-  max-width: 75ch;
+h1 {
+  font-size: clamp(2.5rem, 6vw, 4.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+h2 {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  letter-spacing: -0.025em;
+}
+h3 {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-weight: 500;
 }
 
-code, pre, kbd, samp {
-  font-family: var(--font-mono);
+p,
+li {
+  text-wrap: pretty;
 }
 
 a {
@@ -150,157 +225,169 @@ a:hover {
   color: var(--color-primary-hover);
 }
 
-/* Focus styles */
-:focus-visible {
-  outline: none;
-  ring: 2px solid var(--color-primary);
-  ring-offset: 2px;
-  ring-offset-color: var(--color-bg);
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
 }
 
-/* Selection */
+strong {
+  font-weight: 600;
+}
+
 ::selection {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary);
+  background-color: color-mix(in oklab, var(--color-primary) 30%, transparent);
+  color: var(--color-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  ::selection {
-    background-color: var(--color-primary);
-    color: white;
-  }
+/* Real focus rings. The previous rule set `outline: none` plus two
+   non-existent CSS properties (`ring`, `ring-offset`), which left the whole
+   app without visible keyboard focus. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
-/* Scrollbar */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+}
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+}
+
+/* ==========================================================================
+   Scrollbar — thin, hairline
+   ========================================================================== */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
-
 ::-webkit-scrollbar-track {
   background: var(--color-bg);
 }
-
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
-  border-radius: 4px;
+  border: 3px solid var(--color-bg);
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-dim);
 }
 
-/* Animations */
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up var(--duration-entrance) var(--ease-out-expo) forwards;
-}
-
-.animate-slide-in-right {
-  animation: slide-in-right var(--duration-slow) var(--ease-out-expo) forwards;
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s ease-in-out infinite;
-}
-
-/* Stagger delays */
-.stagger-1 { animation-delay: 80ms; }
-.stagger-2 { animation-delay: 160ms; }
-.stagger-3 { animation-delay: 240ms; }
-.stagger-4 { animation-delay: 320ms; }
-.stagger-5 { animation-delay: 400ms; }
-.stagger-6 { animation-delay: 480ms; }
-
-/* Utility classes */
+/* ==========================================================================
+   Layout primitives
+   ========================================================================== */
 .container {
   width: 100%;
-  max-width: 1280px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 1.25rem;
 }
 
 @media (min-width: 768px) {
   .container {
-    padding: 0 3rem;
+    padding: 0 2.5rem;
   }
 }
 
 @media (min-width: 1024px) {
   .container {
-    padding: 0 4rem;
+    padding: 0 3.5rem;
   }
 }
 
 .section {
-  padding: var(--space-4xl) 0;
+  padding: clamp(5rem, 10vw, 8.5rem) 0;
 }
 
 .section-sm {
-  padding: var(--space-3xl) 0;
+  padding: clamp(3.5rem, 7vw, 6rem) 0;
 }
 
-/* Background patterns */
-.bg-grid {
-  background-image:
-    linear-gradient(rgba(51, 65, 85, 0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(51, 65, 85, 0.3) 1px, transparent 1px);
-  background-size: 64px 64px;
+.measure {
+  max-width: 68ch;
 }
 
-@media (prefers-color-scheme: light) {
-  .bg-grid {
-    background-image:
-      linear-gradient(rgba(226, 232, 240, 0.5) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
-  }
+/* ==========================================================================
+   Hairlines, labels, specimen strips
+   ========================================================================== */
+
+/* A 1px rule that fades out at both ends — reads as drawn, not bounded. */
+.rule-fade {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-border) 12%,
+    var(--color-border) 88%,
+    transparent
+  );
 }
 
-.bg-radial-glow {
-  background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(37, 99, 235, 0.12) 0%, transparent 70%);
+.hairline-t {
+  border-top: 1px solid var(--color-border);
+}
+.hairline-b {
+  border-bottom: 1px solid var(--color-border);
+}
+.hairline-l {
+  border-left: 1px solid var(--color-border);
 }
 
-.bg-noise::before {
+/* Every field label, meta row, tabular header in the app. */
+.exhibit-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-dim);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* The single allowed background element: a ruled baseline that fades out.
+   Replaces the old grid + radial glow + noise stack. */
+.substrate::before {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   pointer-events: none;
+  opacity: 0.28;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--color-text) 11%, transparent) 0 1px,
+    transparent 1px 32px
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
 }
 
-/* Component: Buttons */
+/* ==========================================================================
+   Components: buttons
+   ========================================================================== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -309,214 +396,376 @@ a:hover {
   font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 500;
-  border-radius: var(--radius-xl);
-  transition: all var(--duration-normal) var(--ease-out-expo);
+  letter-spacing: -0.01em;
+  border-radius: var(--radius-xs);
+  padding: 0.625rem 1.125rem;
+  transition:
+    transform var(--duration-fast) var(--ease-out-expo),
+    background-color var(--duration-fast) var(--ease-out-expo),
+    border-color var(--duration-fast) var(--ease-out-expo),
+    color var(--duration-fast) var(--ease-out-expo);
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   text-decoration: none;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.985);
 }
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: white;
-  padding: 0.75rem 1.5rem;
+  color: oklch(0.16 0.01 60);
 }
-
 .btn-primary:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
-}
-
-.btn-primary:active:not(:disabled) {
-  background-color: color-mix(in srgb, var(--color-primary) 90%, black);
+  color: oklch(0.16 0.01 60);
 }
 
 .btn-secondary {
   background-color: transparent;
   color: var(--color-text);
-  border: 2px solid var(--color-border);
-  padding: 0.75rem 1.5rem;
+  border-color: var(--color-border);
 }
-
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--color-surface);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--color-text-dim);
+  color: var(--color-text);
+  background-color: color-mix(in oklab, var(--color-text) 4%, transparent);
 }
 
 .btn-ghost {
   background-color: transparent;
   color: var(--color-text-muted);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-lg);
+  padding: 0.5rem 0.75rem;
 }
-
 .btn-ghost:hover:not(:disabled) {
   color: var(--color-text);
-  background-color: var(--color-surface);
+  background-color: color-mix(in oklab, var(--color-text) 5%, transparent);
 }
 
-/* Component: Cards */
-.card {
+.btn-sm {
+  padding: 0.375rem 0.625rem;
+  font-size: var(--text-meta);
+}
+
+/* The primary affordance of the whole product: re-run a failed case. */
+.btn-retest {
+  background-color: transparent;
+  color: var(--color-primary);
+  border-color: color-mix(in oklab, var(--color-primary) 55%, transparent);
+}
+.btn-retest:hover:not(:disabled) {
+  background-color: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+/* ==========================================================================
+   Components: panels (formerly rounded cards with elevation)
+   ========================================================================== */
+.card,
+.panel {
   background-color: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  padding: 1.5rem;
-  transition: all var(--duration-normal) var(--ease-out-expo);
+  padding: 1.25rem;
+  transition: border-color var(--duration-normal) var(--ease-out-expo);
 }
 
 @media (min-width: 768px) {
-  .card {
-    padding: 2rem;
+  .card,
+  .panel {
+    padding: 1.5rem;
   }
 }
 
 .card:hover {
-  border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
-  box-shadow: var(--shadow-glow-primary);
+  border-color: var(--color-text-dim);
 }
 
-.card-interactive {
-  cursor: pointer;
+/* Verdict stamp: the failure/success verdict, rotated a hair like a rubber
+   stamp on a case file. Subtle by design — 1.5deg, not a gimmick. */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-1.5deg);
+}
+.stamp-ok {
+  color: var(--color-success);
+}
+.stamp-bad {
+  color: var(--color-error);
+}
+.stamp-warn {
+  color: var(--color-warning);
+}
+.stamp-neutral {
+  color: var(--color-text-dim);
 }
 
-/* Component: Code Blocks */
+/* ==========================================================================
+   Components: code
+   ========================================================================== */
 .code-block {
-  background-color: var(--color-surface);
+  background-color: color-mix(in oklab, var(--color-text) 4%, transparent);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-sm);
   padding: 1rem;
   font-family: var(--font-mono);
-  font-size: 0.875rem;
-  line-height: 1.6;
+  font-size: 0.8125rem;
+  line-height: 1.65;
   overflow-x: auto;
   color: var(--color-text);
 }
 
 @media (min-width: 768px) {
   .code-block {
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
 }
 
 .code-inline {
-  background-color: var(--color-surface);
-  padding: 0.125rem 0.375rem;
-  border-radius: 4px;
+  background-color: color-mix(in oklab, var(--color-text) 7%, transparent);
+  padding: 0.1rem 0.3rem;
+  border-radius: var(--radius-xs);
   font-family: var(--font-mono);
-  font-size: 0.875rem;
-  color: var(--color-primary);
+  font-size: 0.8125rem;
+  color: var(--color-text);
 }
 
-/* Component: Badges */
+/* ==========================================================================
+   Components: badges + verdict pills
+   ========================================================================== */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
   font-weight: 500;
-  font-family: var(--font-body);
+  letter-spacing: 0.04em;
+  border: 1px solid currentColor;
+  background-color: transparent;
+  white-space: nowrap;
 }
 
 .badge-success {
-  background-color: color-mix(in srgb, var(--color-success) 15%, transparent);
   color: var(--color-success);
-  border: 1px solid color-mix(in srgb, var(--color-success) 30%, transparent);
 }
-
 .badge-warning {
-  background-color: color-mix(in srgb, var(--color-warning) 15%, transparent);
   color: var(--color-warning);
-  border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
 }
-
 .badge-error {
-  background-color: color-mix(in srgb, var(--color-error) 15%, transparent);
   color: var(--color-error);
-  border: 1px solid color-mix(in srgb, var(--color-error) 30%, transparent);
 }
-
 .badge-info {
-  background-color: color-mix(in srgb, var(--color-info) 15%, transparent);
   color: var(--color-info);
-  border: 1px solid color-mix(in srgb, var(--color-info) 30%, transparent);
 }
-
 .badge-dim {
-  background-color: color-mix(in srgb, var(--color-text-dim) 15%, transparent);
   color: var(--color-text-dim);
-  border: 1px solid var(--color-border);
+}
+.badge-primary {
+  color: var(--color-primary);
 }
 
-/* Trace Timeline Component */
+/* ==========================================================================
+   Stage ramp — used by failure badges, risk bars, timelines
+   ========================================================================== */
+.stage-query_rewrite {
+  color: var(--color-stage-query);
+}
+.stage-retrieval {
+  color: var(--color-stage-retrieval);
+}
+.stage-rerank {
+  color: var(--color-stage-rerank);
+}
+.stage-assembly {
+  color: var(--color-stage-assembly);
+}
+.stage-generation {
+  color: var(--color-stage-generation);
+}
+.stage-none {
+  color: var(--color-success);
+}
+
+.bar-stage-query_rewrite {
+  background-color: var(--color-stage-query);
+}
+.bar-stage-retrieval {
+  background-color: var(--color-stage-retrieval);
+}
+.bar-stage-rerank {
+  background-color: var(--color-stage-rerank);
+}
+.bar-stage-assembly {
+  background-color: var(--color-stage-assembly);
+}
+.bar-stage-generation {
+  background-color: var(--color-stage-generation);
+}
+.bar-stage-none {
+  background-color: var(--color-success);
+}
+
+/* ==========================================================================
+   Navigation
+   ========================================================================== */
+.nav-link {
+  position: relative;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  padding: 0.25rem 0;
+  transition: color var(--duration-fast) var(--ease-out-expo);
+}
+.nav-link:hover {
+  color: var(--color-text);
+}
+.nav-link.active {
+  color: var(--color-text);
+}
+/* Sliding hairline underline, animated by layout, not a colour swap. */
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background-color: var(--color-primary);
+}
+
+/* ==========================================================================
+   Data grid — the core of a debugger
+   ========================================================================== */
+.grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.grid-table thead th {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.grid-table tbody td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid
+    color-mix(in oklab, var(--color-border) 55%, transparent);
+  vertical-align: top;
+}
+.grid-table tbody tr:hover td {
+  background-color: color-mix(in oklab, var(--color-text) 3%, transparent);
+}
+.grid-table .num-col {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 2px inline score bar — data-viz as texture, not a chart. */
+.micro-bar {
+  display: inline-block;
+  height: 2px;
+  min-width: 2px;
+  background-color: var(--color-primary);
+  vertical-align: middle;
+}
+
+/* ==========================================================================
+   Trace timeline (landing + dashboard)
+   ========================================================================== */
 .trace-timeline {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  padding: 1rem 0.5rem;
-  scroll-padding: 0 1.5rem;
+  padding: 0.5rem 0.125rem;
 }
 
 @media (min-width: 1024px) {
   .trace-timeline {
-    gap: 1.5rem;
-    padding: 1.5rem;
+    gap: 1rem;
+    padding: 1rem 0.5rem;
   }
 }
 
 .trace-stage {
   flex: 0 0 auto;
-  width: 180px;
-  scroll-snap-align: start;
+  width: 168px;
   background-color: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: 1.25rem;
-  transition: all var(--duration-normal) var(--ease-out-expo);
+  border-radius: var(--radius-xs);
+  padding: 0.875rem;
+  transition:
+    border-color var(--duration-normal) var(--ease-out-expo),
+    opacity var(--duration-slow) var(--ease-out-expo);
   position: relative;
 }
 
 @media (min-width: 1024px) {
   .trace-stage {
-    width: 200px;
-    padding: 1.5rem;
+    width: 184px;
+    padding: 1rem;
   }
 }
 
-
 .trace-stage.active {
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-glow-primary);
+}
+
+.trace-stage.dimmed {
+  opacity: 0.42;
 }
 
 .trace-stage-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-lg);
+  width: 1.75rem;
+  height: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .trace-stage-name {
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.25rem;
+  color: var(--color-text);
 }
 
 .trace-stage-metric {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-label);
+  color: var(--color-text-dim);
   margin-bottom: 0.5rem;
 }
 
@@ -524,12 +773,13 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.75rem;
+  font-size: var(--text-label);
+  font-family: var(--font-mono);
 }
 
 .trace-connector {
   flex: 0 0 auto;
-  width: 2rem;
+  width: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -537,51 +787,39 @@ a:hover {
 }
 
 .trace-connector svg {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
-/* Feature Grid */
-.feature-grid {
+/* Exhibit row — the dashboard's evidence stack. */
+.exhibit-row {
   display: grid;
-  gap: 1.5rem;
-  grid-template-columns: 1fr;
+  grid-template-columns: 2.5rem 1fr;
+  gap: 0;
+  border-top: 1px solid var(--color-border);
+  transition: background-color var(--duration-fast) var(--ease-out-expo);
 }
-
-@media (min-width: 640px) {
-  .feature-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.exhibit-row:hover {
+  background-color: color-mix(in oklab, var(--color-text) 3%, transparent);
 }
-
-@media (min-width: 1024px) {
-  .feature-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* Navigation */
-.nav-link {
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: color var(--duration-fast) var(--ease-out-expo);
-  padding: 0.5rem 0;
-}
-
-.nav-link:hover {
-  color: var(--color-text);
-}
-
-.nav-link.active {
-  color: var(--color-primary);
-}
-
-/* Hero */
-.hero {
-  min-height: 100vh;
+.exhibit-row .exhibit-rail {
   display: flex;
+  flex-direction: column;
   align-items: center;
+  padding-top: 1rem;
+}
+.exhibit-row .exhibit-body {
+  padding: 0.875rem 1rem 1rem 0;
+  min-width: 0;
+}
+.exhibit-row[data-verdict="true"] .exhibit-body {
+  box-shadow: inset 2px 0 0 0 var(--color-error);
+}
+
+/* ==========================================================================
+   Hero
+   ========================================================================== */
+.hero {
   position: relative;
   overflow: hidden;
 }
@@ -592,24 +830,101 @@ a:hover {
   width: 100%;
 }
 
-/* Page transitions */
-.page-enter {
-  opacity: 0;
-  transform: translateY(20px);
+/* ==========================================================================
+   Motion — one reveal, used sparingly. Replaces fade-in-up-on-everything.
+   ========================================================================== */
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.page-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity var(--duration-entrance) var(--ease-out-expo),
-              transform var(--duration-entrance) var(--ease-out-expo);
+@keyframes sweep-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
-.page-exit {
-  opacity: 1;
+@keyframes pulse-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
-.page-exit-active {
-  opacity: 0;
-  transition: opacity var(--duration-normal) var(--ease-out-expo);
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.reveal {
+  animation: reveal-rise var(--duration-slow) var(--ease-out-expo) both;
+}
+
+/* A single copper underline that sweeps once — the "recovered signal" mark. */
+.sweep-in {
+  transform-origin: left center;
+  animation: sweep-in var(--duration-entrance) var(--ease-out-expo) both;
+}
+
+/* Only ever applied to something genuinely in flight. */
+.animate-pulse-live {
+  animation: pulse-live 1.6s ease-in-out infinite;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--color-text) 6%, transparent);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-text) 8%, transparent),
+    transparent
+  );
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* ==========================================================================
+   Feature list (editorial rows, not a card grid)
+   ========================================================================== */
+.feature-row {
+  display: grid;
+  gap: 0.5rem 2rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .feature-row {
+    grid-template-columns: 10rem 1fr 12rem;
+    align-items: baseline;
+  }
+}
+
+/* Kept for compatibility with FeatureCard's grid usage. */
+.feature-grid {
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
 }

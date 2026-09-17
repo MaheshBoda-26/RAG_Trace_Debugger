@@ -1,363 +1,292 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, Fragment } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, animate, motion, useInView, useReducedMotion } from 'framer-motion';
+import type { AnimationPlaybackControls } from 'framer-motion';
 
-interface TraceStage {
+/**
+ * "The run" — the signature interaction.
+ *
+ * A recorded case executes once in true pipeline order (~3.4s), the failing
+ * exhibit is stamped, and the others desaturate so attention lands on the
+ * fault. It then stops and rests: no looping, because infinite ambient motion
+ * is noise. The visitor can grab the playhead and scrub the run by hand — that
+ * turns a decorative mock into a toy you can actually explore.
+ */
+
+type Exhibit = {
+  id: string;
   name: string;
-  icon: string;
-  status: 'success' | 'warning' | 'error' | 'info';
   latency: number;
-  details: Record<string, string | number | boolean>;
-}
+  readout: string;
+  verdict: 'ok' | 'fail';
+  note: string;
+};
 
-const demoStages: TraceStage[] = [
+const CASE = {
+  id: 'case 12',
+  question: 'What is the refund policy for enterprise?',
+  totalMs: 1935,
+  verdict: 'rerank',
+  reason: 'Needed chunk “pricing#0” was retrieved, then dropped during rerank.',
+};
+
+const EXHIBITS: Exhibit[] = [
   {
-    name: 'Query Rewrite',
-    icon: 'rewrite',
-    status: 'success',
+    id: 'query_rewrite',
+    name: 'query_rewrite',
     latency: 12,
-    details: {
-      input: 'What is the refund policy for enterprise?',
-      output: 'refund policy enterprise SaaS subscription terms',
-    },
+    readout: '4 tokens → 8 terms',
+    verdict: 'ok',
+    note: 'Rewritten query expanded toward the policy docs.',
   },
   {
-    name: 'Retrieval',
-    icon: 'database',
-    status: 'success',
+    id: 'retrieval',
+    name: 'retrieval',
     latency: 45,
-    details: {
-      candidates: 12,
-      denseScore: 0.847,
-      bm25Score: 0.723,
-      fusedScore: 0.781,
-    },
+    readout: '12 candidates · RRF 0.781',
+    verdict: 'ok',
+    note: 'The chunk that answers the question is in the candidate set.',
   },
   {
-    name: 'Rerank',
-    icon: 'filter',
-    status: 'error',
+    id: 'rerank',
+    name: 'rerank',
     latency: 23,
-    details: {
-      kept: 5,
-      dropped: 7,
-      reason: 'Needed chunk dropped at position 8',
-    },
+    readout: '5 kept / 7 dropped',
+    verdict: 'fail',
+    note: 'pricing#0 ranked 8th and was cut before assembly.',
   },
   {
-    name: 'Assembly',
-    icon: 'file-text',
-    status: 'warning',
+    id: 'assembly',
+    name: 'assembly',
     latency: 8,
-    details: {
-      contextTokens: 3247,
-      truncation: true,
-      keptChunks: 5,
-    },
+    readout: '5 chunks · 588 chars',
+    verdict: 'ok',
+    note: 'Context assembled cleanly — from the wrong five chunks.',
   },
   {
-    name: 'Generation',
-    icon: 'brain',
-    status: 'success',
+    id: 'generation',
+    name: 'generation',
     latency: 1847,
-    details: {
-      model: 'gemini-2.5-flash',
-      tokens: 287,
-      temperature: 0.1,
-    },
-  },
-  {
-    name: 'Localizer',
-    icon: 'alert-triangle',
-    status: 'error',
-    latency: 2,
-    details: {
-      indicatedFailure: 'rerank',
-      confidence: 0.94,
-      reason: 'Needed chunk retrieved but dropped during rerank',
-    },
+    readout: 'gemini-2.5-flash · 287 tok',
+    verdict: 'ok',
+    note: 'Answered fluently, without the fact that was dropped upstream.',
   },
 ];
 
-const stageIcons: Record<string, React.ReactNode> = {
-  rewrite: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path d="M21 10H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1z" />
-      <path d="M3 14h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h14" />
-      <path d="M14 4v6M10 14v6" />
-    </svg>
-  ),
-  database: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <ellipse cx="12" cy="5" rx="9" ry="3" />
-      <path d="M3 5v14c0 1.66 7.33 3 9 3s9-1.34 9-3V5" />
-      <path d="M3 12c0 1.66 7.33 3 9 3s9-1.34 9-3" />
-    </svg>
-  ),
-  filter: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-    </svg>
-  ),
-  'file-text': (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-      <polyline points="10 9 9 9 8 9" />
-    </svg>
-  ),
-  brain: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path d="M12 5a3 3 0 1 0-3 3c0 1.5-.5 3-2 4v1c7 0 7-6 7-6a3 3 0 1 0-6 0z" />
-      <path d="M9 17a2 2 0 0 1-2-2c0-1.5.5-3 2-4v-1" />
-      <path d="M15 17a2 2 0 0 0 2-2c0-1.5-.5-3-2-4v-1" />
-    </svg>
-  ),
-  'alert-triangle': (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  ),
-};
-
-const statusConfig = {
-  success: { className: 'badge-success', label: 'OK', icon: 'check' },
-  warning: { className: 'badge-warning', label: 'WARN', icon: 'alert' },
-  error: { className: 'badge-error', label: 'FAIL', icon: 'x' },
-  info: { className: 'badge-info', label: 'RUN', icon: 'loader' },
-};
-
-const statusIcons = {
-  check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-3 h-3"><polyline points="20 6 9 17 4 12" /></svg>,
-  alert: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /></svg>,
-  x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
-  loader: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3 animate-spin"><circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" /></svg>,
-};
+const RUN_KEY = 'rtd-hero-run';
+const RUN_MS = 3400;
 
 export function LandingTraceTimeline() {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<AnimationPlaybackControls | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.35 });
+  const reducedMotion = useReducedMotion();
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-        delayChildren: 0.2,
-      },
-    },
-  };
+  const [progress, setProgress] = useState(0);
+  const [settled, setSettled] = useState(false); // verdict stamped
+  const [scrubbed, setScrubbed] = useState(false);
 
-  const itemVariants = {
-    hidden: { opacity: 0, x: -30 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.5,
-        ease: [0.16, 1, 0.3, 1],
-      },
-    },
-  };
+  const lit = Math.round(progress * EXHIBITS.length);
+  const failIndex = EXHIBITS.findIndex((e) => e.verdict === 'fail');
 
-  const connectorVariants = {
-    hidden: { opacity: 0, scaleX: 0 },
-    visible: {
-      opacity: 1,
-      scaleX: 1,
-      transition: {
-        duration: 0.4,
-        ease: [0.16, 1, 0.3, 1],
-        delay: 0.3,
+  // Rest state: already watched this session, or reduced motion is requested.
+  useEffect(() => {
+    if (reducedMotion) {
+      setProgress(1);
+      setSettled(true);
+      return;
+    }
+    try {
+      if (sessionStorage.getItem(RUN_KEY) === '1') {
+        setProgress(1);
+        setSettled(true);
+      }
+    } catch {
+      /* sessionStorage unavailable — the run simply plays again */
+    }
+  }, [reducedMotion]);
+
+  // Play the run once, when it first comes into view.
+  useEffect(() => {
+    if (!inView || scrubbed) return;
+    if (reducedMotion) return;
+    let alreadyRan = false;
+    try {
+      alreadyRan = sessionStorage.getItem(RUN_KEY) === '1';
+    } catch {
+      alreadyRan = false;
+    }
+    if (alreadyRan) return;
+
+    const controls = animate(0, 1, {
+      duration: RUN_MS / 1000,
+      ease: [0.2, 0, 0, 1],
+      onUpdate: setProgress,
+      onComplete: () => {
+        setSettled(true);
+        try {
+          sessionStorage.setItem(RUN_KEY, '1');
+        } catch {
+          /* ignore */
+        }
       },
-    },
-  };
+    });
+    controlsRef.current = controls;
+    return () => controls.stop();
+  }, [inView, reducedMotion, scrubbed]);
+
+  function onScrub(value: number) {
+    controlsRef.current?.stop();
+    setScrubbed(true);
+    setProgress(value);
+    setSettled(value >= 1);
+  }
 
   return (
-    <section aria-label="Interactive trace timeline" className="relative">
-      <div className="max-w-7xl mx-auto">
-        {/* Timeline Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h3 className="font-display text-lg font-semibold">Live Trace: <code className="code-inline">q_7f2a9e4...</code></h3>
-            <p className="text-sm text-text-muted mt-1">Query: "What is the refund policy for enterprise?"</p>
+    <section aria-labelledby="hero-run-heading" className="relative">
+      <div ref={ref}>
+        {/* Case header */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 hairline-b pb-3">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h3 id="hero-run-heading" className="exhibit-label text-text-muted">
+              recorded case
+            </h3>
+            <span className="meta">{CASE.id}</span>
+            <span className="text-sm text-text-muted">“{CASE.question}”</span>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-text-dim">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-success" />
-              Total: 1937ms
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-error" />
-              Failure: Rerank
-            </span>
-          </div>
+          <span className="meta num">{CASE.totalMs} ms total</span>
         </div>
 
-        {/* Timeline */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="trace-timeline"
+        {/* Playhead rail */}
+        <div className="relative mt-5">
+          <div className="h-px w-full bg-border" />
+          <div
+            className="absolute left-0 top-0 h-px bg-primary transition-[width] duration-100 ease-linear"
+            style={{ width: `${progress * 100}%` }}
+          />
+        </div>
+
+        {/* Exhibits */}
+        <ol
+          className="trace-timeline mt-4"
           role="list"
-          aria-label="Pipeline stages"
+          aria-label="Pipeline exhibits for the recorded case"
         >
-          {demoStages.map((stage, index) => (
-            <Fragment key={stage.name}>
-              <motion.article
-                variants={itemVariants}
-                className={`trace-stage ${selectedIndex === index ? 'active' : ''}`}
-                role="listitem"
-                onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedIndex(selectedIndex === index ? null : index);
-                  }
+          {EXHIBITS.map((exhibit, index) => {
+            const isLit = index < lit;
+            const isActive = !settled && index === lit - 1;
+            const isVerdict = settled && index === failIndex;
+            const isDimmed = settled && index !== failIndex;
+
+            return (
+              <li
+                key={exhibit.id}
+                className={`trace-stage ${isActive || isVerdict ? 'active' : ''} ${
+                  isDimmed ? 'dimmed' : ''
+                }`}
+                aria-current={isActive ? 'step' : undefined}
+                style={{
+                  borderColor: isVerdict
+                    ? 'var(--color-error)'
+                    : isLit
+                      ? 'var(--color-primary)'
+                      : 'var(--color-border)',
                 }}
               >
-                <div
-                  className="trace-stage-icon"
-                  style={{
-                    backgroundColor: `color-mix(in srgb, var(--color-${statusConfig[stage.status].className.replace('badge-', '')}) 15%, transparent)`,
-                    color: `var(--color-${statusConfig[stage.status].className.replace('badge-', '')})`,
-                  }}
-                >
-                  {stageIcons[stage.icon]}
-                </div>
-
-                <h4 className="trace-stage-name">{stage.name}</h4>
-
-                <div className="trace-stage-metric font-mono">
-                  {stage.latency}ms
-                </div>
-
-                <div className="trace-stage-status">
-                  <span
-                    className={`badge ${statusConfig[stage.status].className}`}
-                  >
-                    {statusIcons[statusConfig[stage.status].icon as keyof typeof statusIcons]}
-                    {statusConfig[stage.status].label}
-                  </span>
-                </div>
-
-                {/* Detail Tooltip on Select */}
-                <AnimatePresence>
-                  {selectedIndex === index && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-72 z-20
-                        bg-surface border border-border rounded-xl p-3 shadow-lg
-                        animate-fade-in-up"
-                      role="tooltip"
-                    >
-                      <div className="font-mono text-xs text-text-muted mb-2">
-                        {stage.name} Details
-                      </div>
-                      <dl className="space-y-1.5 text-sm">
-                        {Object.entries(stage.details).map(([key, value]) => (
-                          <div key={key} className="flex justify-between gap-4">
-                            <dt className="text-text-dim capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</dt>
-                            <dd className="font-mono text-text text-right max-w-[60%] truncate">
-                              {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </motion.div>
+                <div className="flex items-center justify-between">
+                  <span className="exhibit-label">{String(index + 1).padStart(2, '0')}</span>
+                  {isVerdict ? (
+                    <span className="stage-retrieval exhibit-label">verdict</span>
+                  ) : (
+                    isLit && <span className="exhibit-label text-primary">done</span>
                   )}
-                </AnimatePresence>
-              </motion.article>
+                </div>
 
-              {index < demoStages.length - 1 && (
-                <motion.div variants={connectorVariants} className="trace-connector">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                    <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </motion.div>
-              )}
-            </Fragment>
-          ))}
-        </motion.div>
+                <h4 className="trace-stage-name mt-3">{exhibit.name}</h4>
+                <div className="trace-stage-metric">{exhibit.readout}</div>
+                <div className="flex items-center justify-between">
+                  <span className="meta num">{exhibit.latency} ms</span>
+                  {exhibit.verdict === 'fail' && settled ? (
+                    <span className="badge badge-error">dropped</span>
+                  ) : isLit ? (
+                    <span className="badge badge-dim">ok</span>
+                  ) : (
+                    <span className="meta">—</span>
+                  )}
+                </div>
 
-        {/* Scroll Indicator */}
-        <div className="flex justify-center mt-4">
-          <motion.div
-            animate={{ x: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            className="flex flex-col items-center gap-1 text-text-dim"
-            aria-hidden="true"
-          >
-            <span className="text-xs">Scroll to explore</span>
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-              <path d="M12 5v14M19 12l-7 7-7-7" />
-            </svg>
-          </motion.div>
+                {/* The single copper sweep marks the faulty exhibit. */}
+                {isVerdict && (
+                  <span className="sweep-in absolute bottom-0 left-0 right-0 h-px bg-primary" />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+
+        {/* Scrub control — the mock becomes an instrument. */}
+        <div className="mt-3 flex items-center gap-4">
+          <label htmlFor="run-scrub" className="exhibit-label shrink-0">
+            playhead
+          </label>
+          <input
+            id="run-scrub"
+            type="range"
+            min={0}
+            max={1000}
+            value={Math.round(progress * 1000)}
+            onChange={(e) => onScrub(Number(e.target.value) / 1000)}
+            className="h-1 w-full max-w-xs cursor-ew-resize appearance-none bg-border accent-primary"
+            aria-label="Scrub through the recorded run"
+            aria-valuetext={`${lit} of ${EXHIBITS.length} exhibits complete`}
+          />
+          <span className="meta num shrink-0">
+            {String(lit).padStart(2, '0')}/{EXHIBITS.length}
+          </span>
         </div>
 
-        {/* Selected Stage Detail Panel */}
-        <AnimatePresence>
-          {selectedIndex !== null && (
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 30 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="mt-8 card relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{
-                      backgroundColor: `color-mix(in srgb, var(--color-${statusConfig[demoStages[selectedIndex].status].className.replace('badge-', '')}) 15%, transparent)`,
-                      color: `var(--color-${statusConfig[demoStages[selectedIndex].status].className.replace('badge-', '')})`,
-                    }}
-                  >
-                    {stageIcons[demoStages[selectedIndex].icon]}
-                  </div>
-                  <div>
-                    <h4 className="font-display text-lg font-semibold">{demoStages[selectedIndex].name}</h4>
-                    <span className={`badge ${statusConfig[demoStages[selectedIndex].status].className}`}>
-                      {statusIcons[statusConfig[demoStages[selectedIndex].status].icon as keyof typeof statusIcons]}
-                      {statusConfig[demoStages[selectedIndex].status].label}
-                    </span>
-                  </div>
+        {/* Verdict */}
+        <div className="mt-6 min-h-[6.5rem]">
+          <AnimatePresence mode="wait">
+            {settled ? (
+              <motion.div
+                key="verdict"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                className="flex flex-col gap-4 border border-border bg-bg-elevated p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <span className="stamp stamp-bad">verdict · {CASE.verdict}</span>
+                  <p className="text-sm text-text-muted max-w-xl">{CASE.reason}</p>
                 </div>
-                <button
-                  onClick={() => setSelectedIndex(null)}
-                  className="btn btn-ghost text-text-dim hover:text-error"
-                  aria-label="Close details"
+                <motion.a
+                  href="/debugger"
+                  className="btn btn-retest whitespace-nowrap"
+                  initial={{ opacity: 0.85 }}
+                  animate={{ scale: [1, 1.035, 1], opacity: 1 }}
+                  transition={{ duration: 0.6, delay: 0.25, ease: [0.2, 0, 0, 1] }}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+                  Re-test this case
+                </motion.a>
+              </motion.div>
+            ) : (
+              <motion.p
+                key="waiting"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="meta py-4"
+              >
+                running exhibits…
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                {Object.entries(demoStages[selectedIndex].details).map(([key, value]) => (
-                  <div key={key} className="space-y-1">
-                    <dt className="text-xs font-medium text-text-dim uppercase tracking-wider">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </dt>
-                    <dd className="font-mono text-sm text-text break-all">
-                      {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
-                    </dd>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <p className="meta mt-2">
+          Recorded run — the live form below executes the real pipeline.
+        </p>
       </div>
     </section>
   );
