@@ -29,7 +29,7 @@
   --color-border: oklch(0.3 0.008 58);
   /* Hairlines are decorative and deliberately delicate; interactive control
      boundaries must clear 3:1 (WCAG 1.4.11), so they use this instead. */
-  --color-border-strong: oklch(0.47 0.01 60);
+  --color-border-strong: oklch(0.53 0.01 60);
   --color-text: oklch(0.94 0.004 85);
   --color-text-muted: oklch(0.78 0.005 80);
   --color-text-dim: oklch(0.64 0.008 75);
@@ -52,6 +52,9 @@
   /* Legacy names kept so old references resolve to brand values, not Tailwind. */
   --color-accent-cyan: oklch(0.72 0.14 52);
   --color-accent-orange: oklch(0.72 0.14 52);
+  /* Text on top of the accent. Ink on light copper in dark mode; bone on
+     darker copper in light mode — verified ≥ 4.5:1 in both. */
+  --color-on-primary: oklch(0.16 0.01 60);
 
   /* ---------- Verdict ramp (derived from the brand, not Tailwind) -------- */
   --color-success: oklch(0.72 0.09 175); /* muted verdigris */
@@ -138,6 +141,7 @@ html[data-theme="light"] {
   --color-text-dim: var(--color-text-dim-light);
   --color-primary: oklch(0.5 0.14 45);
   --color-primary-hover: oklch(0.44 0.14 42);
+  --color-on-primary: oklch(0.99 0.005 85);
   --color-primary-light: oklch(0.9 0.045 70);
   --color-success: oklch(0.5 0.08 175);
   --color-warning: oklch(0.55 0.11 70);
@@ -262,7 +266,7 @@ strong {
   z-index: 100;
   padding: 0.75rem 1rem;
   background: var(--color-primary);
-  color: var(--color-bg);
+  color: var(--color-on-primary);
   font-family: var(--font-mono);
   font-size: var(--text-meta);
 }
@@ -446,11 +450,11 @@ strong {
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: oklch(0.16 0.01 60);
+  color: var(--color-on-primary);
 }
 .btn-primary:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
-  color: oklch(0.16 0.01 60);
+  color: var(--color-on-primary);
 }
 
 .btn-secondary {

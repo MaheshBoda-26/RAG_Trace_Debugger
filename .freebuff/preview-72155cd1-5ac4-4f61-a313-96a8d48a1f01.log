@@ -348,3 +348,4 @@ INFO:     127.0.0.1:51546 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
 11:15:33 PM [vite] (client) hmr update /src/DashboardApp.tsx, /src/index.css
 INFO:     127.0.0.1:51589 - "GET /api/traces HTTP/1.1" 200 OK
 11:15:39 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+11:16:13 PM [vite] (client) hmr update /src/index.css
