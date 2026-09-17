@@ -54,6 +54,13 @@ function HealthPill({ health }: { health: Health | null }) {
 export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // The three routes reuse this component, so React keeps its state across a
+  // navigation (e.g. /eval -> /debugger). Without this the tab would stay on
+  // whichever surface the visitor came from.
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
   const [traces, setTraces] = useState<TraceSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('case'));
   const [trace, setTrace] = useState<Trace | null>(null);
