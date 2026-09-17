@@ -357,3 +357,4 @@ INFO:     127.0.0.1:51619 - "GET /api/traces HTTP/1.1" 200 OK
 INFO:     127.0.0.1:51627 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:51625 - "GET /api/traces HTTP/1.1" 200 OK
 11:16:42 PM [vite] (client) hmr update /src/index.css, /src/components/LandingTraceTimeline.tsx
+11:17:07 PM [vite] (client) hmr update /src/index.css

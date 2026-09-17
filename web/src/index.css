@@ -42,7 +42,7 @@
   --color-border-strong-light: oklch(0.54 0.01 70);
   --color-text-light: oklch(0.22 0.008 60);
   --color-text-muted-light: oklch(0.42 0.01 60);
-  --color-text-dim-light: oklch(0.55 0.01 65);
+  --color-text-dim-light: oklch(0.51 0.01 65);
 
   /* ---------- Accent: oxidized copper ----------------------------------- */
   --color-primary: oklch(0.72 0.14 52);
