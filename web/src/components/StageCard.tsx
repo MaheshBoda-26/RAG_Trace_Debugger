@@ -4,9 +4,10 @@ import { ChunkTable } from './ChunkTable';
 
 interface JsonViewProps {
   data: Record<string, unknown>;
+  stageName: string;
 }
 
-function JsonView({ data }: JsonViewProps) {
+function JsonView({ data, stageName }: JsonViewProps) {
   if (!data || Object.keys(data).length === 0) return null;
   return (
     <details className="group mt-2">
@@ -16,7 +17,12 @@ function JsonView({ data }: JsonViewProps) {
         </svg>
         input
       </summary>
-      <pre className="code-block mt-2 max-h-48 overflow-y-auto" tabIndex={0} aria-label="Stage input, scrollable">
+      <pre
+        className="code-block mt-2 max-h-48 overflow-y-auto"
+        tabIndex={0}
+        role="region"
+        aria-label={`${stageName} input, scrollable`}
+      >
         {JSON.stringify(data, null, 2)}
       </pre>
     </details>
@@ -26,9 +32,10 @@ function JsonView({ data }: JsonViewProps) {
 interface TextBlockProps {
   label: string;
   text: string;
+  stageName: string;
 }
 
-function TextBlock({ label, text }: TextBlockProps) {
+function TextBlock({ label, text, stageName }: TextBlockProps) {
   if (!text) return null;
   return (
     <div className="mt-3">
@@ -37,7 +44,7 @@ function TextBlock({ label, text }: TextBlockProps) {
         className="max-h-64 overflow-y-auto whitespace-pre-wrap break-words border border-border bg-transparent p-2 font-mono text-xs text-text-muted"
         tabIndex={0}
         role="region"
-        aria-label={`${label}, scrollable`}
+        aria-label={`${stageName} ${label}, scrollable`}
       >
         {text}
       </div>
@@ -104,7 +111,7 @@ export function StageCard({ stage, loading = false }: StageCardProps) {
 
       {/* Stage-specific outputs */}
       {stage.input && Object.keys(stage.input).length > 0 && (
-        <JsonView data={stage.input} />
+        <JsonView data={stage.input} stageName={stage.stage} />
       )}
       {rewritten && (
         <div className="mt-3">
@@ -116,11 +123,13 @@ export function StageCard({ stage, loading = false }: StageCardProps) {
       )}
       {hasCandidates && (
         <div className="mt-3">
-          <ChunkTable candidates={stage.candidates} />
+          <ChunkTable candidates={stage.candidates} label={`${stage.stage} candidates`} />
         </div>
       )}
-      {context && <TextBlock label="assembled context" text={context} />}
-      {answer && <TextBlock label="answer" text={answer} />}
+      {context && (
+        <TextBlock label="assembled context" text={context} stageName={stage.stage} />
+      )}
+      {answer && <TextBlock label="answer" text={answer} stageName={stage.stage} />}
     </div>
   );
 }

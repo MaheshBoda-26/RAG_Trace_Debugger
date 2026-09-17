@@ -8,13 +8,15 @@ function fmt(value: number | null): string {
 interface ChunkTableProps {
   candidates: Candidate[];
   loading?: boolean;
+  /** Distinguishes the region landmark when several tables share a page. */
+  label?: string;
 }
 
 /**
  * The candidate grid. Every number that a reader compares is right-aligned and
  * tabular; the fused score carries a 2px bar so rank is legible at a glance.
  */
-export function ChunkTable({ candidates, loading = false }: ChunkTableProps) {
+export function ChunkTable({ candidates, loading = false, label = 'candidates' }: ChunkTableProps) {
   if (loading) {
     return (
       <div aria-busy="true" className="py-2">
@@ -38,7 +40,12 @@ export function ChunkTable({ candidates, loading = false }: ChunkTableProps) {
 
   return (
     // Scrollable regions need keyboard access (axe: scrollable-region-focusable).
-    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Candidate scores, scrollable">
+    <div
+      className="overflow-x-auto"
+      tabIndex={0}
+      role="region"
+      aria-label={`${label}, scrollable`}
+    >
       <table className="grid-table">
         <caption className="sr-only">
           Retrieved candidates with dense, BM25, fused and rerank scores
