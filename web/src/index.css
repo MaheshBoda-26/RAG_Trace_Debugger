@@ -64,9 +64,10 @@
 
   /* Failure-stage ramp: rust -> copper -> brass -> blood, so a failure reads
      as part of the brand rather than a generic red alert. Lightness is held
-     above the AA floor because these are worn as 11px text: every value here
-     measures >= 4.6:1 on both ink backgrounds (verified with axe-core, and
-     re-checkable with the canvas probe in the run doc). */
+     above the AA floor because these are worn as 11px text: measured against
+     the badge pill they are rendered in, the tightest value is 6.13:1 here
+     and 5.14:1 in light mode (see the README contrast table; re-checkable
+     with the canvas probe in .freebuff/run.md). */
   --color-stage-query: oklch(0.68 0.07 250);
   --color-stage-retrieval: oklch(0.67 0.15 35);
   --color-stage-rerank: oklch(0.75 0.14 52);

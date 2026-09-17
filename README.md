@@ -266,20 +266,20 @@ Motion here is budgeted and meaningful, never ambient:
 - **Explicit theming.** `html[data-theme]` with dark as the default and a persisted toggle; `prefers-color-scheme` no longer silently swaps the design. Tailwind's `dark:` variant is rebound to the attribute (`@custom-variant`) so utilities can't disagree with the theme.
 - **Real focus rings.** The previous CSS set `outline: none` plus two non-existent properties (`ring`, `ring-offset`), leaving the app with no visible keyboard focus. It now sets a 2 px copper outline with 2 px offset, and no rule in the stylesheet sets `outline: none`.
 - **Keyboard-first dashboard.** `j`/`k` walk the case list, `/` focuses case search, `⌘K` opens the command palette, `⌘1–3` jump between surfaces.
-- **Measured contrast.** Every text token was probed in both themes against the resolved backgrounds:
+- **Measured contrast.** Every token was probed in the browser with canvas pixel sampling, so these are resolved sRGB numbers against resolved sRGB backgrounds — not hand-computed guesses. Method: text tokens and `--color-border-strong` against the page background (dark `oklch(0.155 0.005 60)`, light `#f7f6f2`); the failure ramp against the badge pill it is actually rendered in; the accent-button row as text against its own fill.
 
 | | dark | light |
 |---|---|---|
-| primary accent | 7.14 | 5.89 |
-| success / warning | 7.76 / 9.11 | 5.31 / 4.61 |
-| error / info | 5.8 / 7.49 | 6.08 / 5.48 |
-| body text | 16.0 | 16.0 |
-| muted / dim | 8.4 / 5.52 | 7.84 / 4.7 |
-| failure ramp (query/retrieval/rerank/assembly/generation) | 5.98 / 4.7 / 7.14 / 8.42 / 5.5 | 5.55 / 6.01 / 4.71 / 4.6 / 7.2 |
-| control boundary (`--color-border-strong`) | 3.7 | 4.66 |
-| text on the accent button | 7.51 | 6.2 |
+| primary accent (`--color-primary`) | 7.54 | 5.89 |
+| success / warning | 8.19 / 9.62 | 5.31 / 4.61 |
+| error / info | 6.28 / 7.91 | 6.08 / 5.48 |
+| body text | 16.38 | 16.02 |
+| muted / dim | 9.76 / 5.83 | 7.84 / 5.33 |
+| failure ramp (query/retrieval/rerank/assembly/generation) | 6.81 / 6.13 / 8.42 / 10.65 / 6.49 | 5.54 / 6.00 / 5.14 / 5.46 / 7.19 |
+| control boundary (`--color-border-strong`) | 3.70 | 4.66 |
+| text on the accent button | 7.51 | 6.20 |
 
-  Decorative hairlines stay deliberately faint; interactive control boundaries use a separate `--color-border-strong` token so they clear the 3:1 floor of WCAG 1.4.11.
+  Every value clears the 4.5:1 AA floor for its text size; the two tightest — light-theme `rerank` and `assembly` at 5.14 and 5.46 — were specifically re-solved in oklch lightness after axe-core caught them at 4.71 and 4.44 on the pill surface. Decorative hairlines stay deliberately faint; interactive control boundaries use a separate `--color-border-strong` token so they clear the 3:1 floor of WCAG 1.4.11.
 - **axe-core: 0 violations** across `/`, `/debugger`, `/features`, `/about`, `/eval`, `/corpus` in **both** themes (WCAG 2.0/2.1 A+AA and best-practice rulesets).
 
 Re-run the audit: `npm i -D axe-core`, serve `node_modules/axe-core/axe.min.js`, then in the browser console run `axe.run(document)`. The contrast probe recipe (canvas pixel sampling in oklch) is in `.freebuff/run.md`.
