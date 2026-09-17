@@ -15,6 +15,17 @@ export default defineConfig({
       },
     },
   },
+  // So `npm run preview` exercises the real built artifact against the API.
+  preview: {
+    port: 4173,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     rollupOptions: {
       output: {
