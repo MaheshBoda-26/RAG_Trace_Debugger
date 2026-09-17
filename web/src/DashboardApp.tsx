@@ -242,7 +242,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
                   onChange={(e) => setQueryText(e.target.value)}
                   placeholder="Ask something about Northwind SaaS…"
                   rows={2}
-                  className="mt-2 w-full border border-border bg-transparent px-2 py-1 font-mono text-xs text-text placeholder:text-text-dim focus:outline-none"
+                  className="field mt-2"
                 />
                 <label htmlFor="case-terms" className="exhibit-label mt-3 block">
                   key terms · optional
@@ -252,7 +252,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
                   value={queryTerms}
                   onChange={(e) => setQueryTerms(e.target.value)}
                   placeholder="comma-separated"
-                  className="mt-2 w-full border border-border bg-transparent px-2 py-1 font-mono text-xs text-text placeholder:text-text-dim focus:outline-none"
+                  className="field mt-2"
                 />
                 <button type="submit" disabled={running} className="btn btn-primary mt-3 w-full">
                   {running ? 'tracing…' : 'run traced case'}
@@ -273,7 +273,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
                     value={caseQuery}
                     onChange={(e) => setCaseQuery(e.target.value)}
                     placeholder="filter cases…  /"
-                    className="mt-2 w-full border border-border bg-transparent px-2 py-1 font-mono text-xs text-text placeholder:text-text-dim focus:outline-none"
+                    className="field mt-2"
                   />
                 </div>
                 <QueryList

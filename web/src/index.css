@@ -27,6 +27,9 @@
   --color-bg-elevated: oklch(0.19 0.006 58);
   --color-surface: oklch(0.225 0.007 58);
   --color-border: oklch(0.3 0.008 58);
+  /* Hairlines are decorative and deliberately delicate; interactive control
+     boundaries must clear 3:1 (WCAG 1.4.11), so they use this instead. */
+  --color-border-strong: oklch(0.47 0.01 60);
   --color-text: oklch(0.94 0.004 85);
   --color-text-muted: oklch(0.78 0.005 80);
   --color-text-dim: oklch(0.64 0.008 75);
@@ -36,6 +39,7 @@
   --color-bg-elevated-light: oklch(0.995 0.003 85);
   --color-surface-light: oklch(0.945 0.006 85);
   --color-border-light: oklch(0.87 0.007 80);
+  --color-border-strong-light: oklch(0.54 0.01 70);
   --color-text-light: oklch(0.22 0.008 60);
   --color-text-muted-light: oklch(0.42 0.01 60);
   --color-text-dim-light: oklch(0.55 0.01 65);
@@ -128,6 +132,7 @@ html[data-theme="light"] {
   --color-bg-elevated: var(--color-bg-elevated-light);
   --color-surface: var(--color-surface-light);
   --color-border: var(--color-border-light);
+  --color-border-strong: var(--color-border-strong-light);
   --color-text: var(--color-text-light);
   --color-text-muted: var(--color-text-muted-light);
   --color-text-dim: var(--color-text-dim-light);
@@ -343,6 +348,27 @@ strong {
 }
 .hairline-l {
   border-left: 1px solid var(--color-border);
+}
+
+/* Form controls: a boundary that is actually perceivable, plus a visible label
+   (WCAG 1.4.11 — hairlines alone are too faint to identify a control). */
+.field {
+  width: 100%;
+  border: 1px solid var(--color-border-strong);
+  background-color: transparent;
+  padding: 0.375rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  color: var(--color-text);
+  transition: border-color var(--duration-fast) var(--ease-out-expo);
+}
+
+.field::placeholder {
+  color: var(--color-text-dim);
+}
+
+.field:hover {
+  border-color: var(--color-text-dim);
 }
 
 /* Every field label, meta row, tabular header in the app. */
