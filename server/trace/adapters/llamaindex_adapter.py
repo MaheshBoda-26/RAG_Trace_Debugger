@@ -1,62 +1,39 @@
-"""LlamaIndex adapter — maps LlamaIndex instrumentation spans to trace stages.
+"""LlamaIndex adapter — event-driven trace capture (Phase 4).
 
-Mapping (llama-index >= 0.10 core instrumentation):
+Maps llama-index-core instrumentation events onto canonical trace stages:
 
-    EventSpan: RETRIEVE / RetrievalStart-End   -> retrieval
-    EventSpan: SYNTHESIZE / LLMPredict         -> generation
-    QUERY (top-level query run)                -> assembly
+    QueryStartEvent / QueryEndEvent          -> assembly (top-level query run)
+    RetrievalStartEvent / RetrievalEndEvent  -> retrieval (RETRIEVE)
+    SynthesizeStartEvent / SynthesizeEndEvent-> generation (SYNTHESIZE)
+    LLMPredictEndEvent                       -> answer capture
 
-Usage:
+Usage (llama-index-core >= 0.10):
 
     from server.trace.adapters.llamaindex_adapter import LlamaIndexTraceHandler
 
-    handler = LlamaIndexTraceHandler(query="my query")
+    handler = LlamaIndexTraceHandler(query="my query")   # before .query()
     result = query_engine.query("my query")
     trace_id = handler.query_id
-    handler.finalize()   # optional; also runs on GC
+    trace = handler.finalize()   # optional; also runs at GC/exit
 
 Requires `llama-index-core` (optional dependency; imported lazily at handler
-construction so this module stays importable without it).
+construction so this module stays importable without it). The handler uses the
+global dispatcher, so it captures every query run between construction and
+finalize() — create one handler per query run.
 """
 from __future__ import annotations
 
 import uuid
 from typing import Any, Optional
 
-from ..collector import TraceContext, tracer
-from ..events import StageStatus, Trace
+from ..collector import StageScope, TraceContext, tracer
+from ..events import Trace
 from ..localize import localize_trace
 from .. import store
 
-# Canonical stage mapping by LlamaIndex event type / span type.
-_SPAN_TO_STAGE = {
-    "retrieve": "retrieval",
-    "RETRIEVE": "retrieval",
-    "synthesize": "generation",
-    "SYNTHESIZE": "generation",
-    "llm": "generation",
-    "LLM": "generation",
-    "query": "assembly",
-    "QUERY": "assembly",
-    "embed": "retrieval",
-    "EMBED": "retrieval",
-}
-
-
-def _stage_for(span: Any) -> Optional[str]:
-    stype = getattr(span, "span_type", None)
-    stype = getattr(stype, "value", stype)
-    name = str(stype or getattr(span, "event_type", "") or "")
-    name = getattr(name, "value", name)
-    return _SPAN_TO_STAGE.get(str(name))
-
 
 class LlamaIndexTraceHandler:
-    """Registers a llama-index DispatcherSpanHandler bound to one trace.
-
-    Construction imports llama_index.core (raising a helpful ImportError when
-    the optional dependency is missing).
-    """
+    """Event handler bound to one trace via the global LlamaIndex dispatcher."""
 
     def __init__(
         self,
@@ -69,23 +46,13 @@ class LlamaIndexTraceHandler:
     ) -> None:
         try:
             from llama_index.core.instrumentation import get_dispatcher
+            from llama_index.core.instrumentation.event_handlers import (
+                BaseEventHandler,
+            )
         except ImportError as exc:  # pragma: no cover
             raise ImportError(
                 "LlamaIndexTraceHandler requires llama-index-core. "
                 "Install with: pip install llama-index-core"
-            ) from exc
-
-        try:
-            from llama_index.core.instrumentation.event_handlers import (
-                BaseEventHandler,
-            )
-            from llama_index.core.instrumentation.span_handlers import (
-                SimpleSpanHandler,
-            )
-        except ImportError as exc:  # pragma: no cover
-            raise ImportError(
-                "llama-index-core does not expose instrumentation handlers; "
-                "upgrade to llama-index-core >= 0.10."
             ) from exc
 
         self._persist = persist
@@ -98,86 +65,86 @@ class LlamaIndexTraceHandler:
             query_id=query_id or f"li_{uuid.uuid4().hex[:12]}",
             key_terms=key_terms,
         )
-        self._spans: dict[str, Any] = {}
-        self._root_span_id: Optional[str] = None
+        # LIFO stacks of open stages per canonical stage name.
+        self._open: dict[str, list[StageScope]] = {}
 
-        # ---- span handler ---------------------------------------------------
         outer = self
 
-        class _SpanHandler(SimpleSpanHandler):
-            """SimpleSpanHandler drives on_span_start/on_span_end for us."""
-
-            def __init__(self) -> None:
-                super().__init__()
-                self.open_spans: dict[Any, Any] = {}
-
-            def on_span_start(self, span: Any) -> None:
-                stage = _stage_for(span)
-                if stage is None:
-                    return
-                try:
-                    scope = outer._ctx.begin_stage(stage, input={})
-                except Exception:
-                    return
-                self.open_spans[span.id_] = (scope, stage)
-                if outer._root_span_id is None and stage == "assembly":
-                    outer._root_span_id = span.id_
-
-            def on_span_end(self, span: Any) -> None:
-                entry = self.open_spans.pop(span.id_, None)
-                if entry is None:
-                    return
-                scope, stage = entry
-                try:
-                    payload = getattr(span, "payload", {}) or {}
-                    if stage == "generation":
-                        out = payload.get("response") or payload.get("completion")
-                        if isinstance(out, str) and out:
-                            outer._answer = out
-                    if stage == "retrieval":
-                        nodes = payload.get("nodes") or []
-                        docs = [
-                            {
-                                "doc_id": getattr(n, "id_", "node"),
-                                "text": (getattr(n, "text", "") or "")[:300],
-                                "score": getattr(n, "score", None),
-                            }
-                            for n in list(nodes)[:20]
-                        ]
-                        scope.set(output={"documents": docs, "count": len(docs)})
-                    scope.end()
-                except Exception:
-                    scope.end()
-
-            def on_span_error(self, error: Exception, span: Any) -> None:
-                entry = self.open_spans.pop(getattr(span, "id_", None), None)
-                if entry is None:
-                    return
-                scope, _stage = entry
-                scope.end(status=StageStatus.ERROR, error=str(error))
-
-        # ---- event handler (answers) ----------------------------------------
         class _EventHandler(BaseEventHandler):
             def handle(self, event: Any) -> None:
-                cls = type(event).__name__
-                if cls in ("LLMCompletionEndEvent", "LLMPredictEndEvent", "SynthesizeEndEvent"):
-                    response = getattr(event, "response", None) or getattr(event, "completion", None)
-                    if isinstance(response, str) and response:
-                        outer._answer = response
-                if cls == "RetrievalEndEvent" and not outer._context:
-                    nodes = getattr(event, "nodes", []) or []
-                    outer._context = " ".join(
-                        (getattr(n, "text", "") or "")[:300] for n in list(nodes)[:10]
-                    )
+                try:
+                    outer._on_event(event)
+                except Exception:
+                    pass  # never break the host pipeline on tracing errors
 
-        self._span_handler = _SpanHandler()
-        self._event_handler = _EventHandler()
-        dispatcher = get_dispatcher()
-        self._dispatcher = dispatcher
-        dispatcher.add_span_handler(self._span_handler)
-        dispatcher.add_event_handler(self._event_handler)
+        self._handler = _EventHandler()
+        self._dispatcher = get_dispatcher()
+        self._dispatcher.add_event_handler(self._handler)
 
-    # -- lifecycle -----------------------------------------------------------
+    # ---- event mapping -------------------------------------------------------
+    def _on_event(self, event: Any) -> None:
+        name = type(event).__name__
+
+        if name == "QueryStartEvent":
+            self._push("assembly", {"query": str(getattr(event, "query", ""))[:400]})
+        elif name == "RetrievalStartEvent":
+            self._push("retrieval", {"query": str(getattr(event, "str_or_query_bundle", ""))[:400]})
+        elif name == "SynthesizeStartEvent":
+            self._push("generation", {"query": str(getattr(event, "query", ""))[:400]})
+        elif name == "RetrievalEndEvent":
+            scope = self._pop("retrieval")
+            if scope is None:
+                return
+            nodes = list(getattr(event, "nodes", None) or [])
+            docs = [
+                {
+                    "doc_id": str(getattr(n, "id_", "node") or "node"),
+                    "text": (getattr(n, "text", "") or "")[:300],
+                    "score": getattr(n, "score", None),
+                }
+                for n in nodes[:20]
+            ]
+            scope.set(output={"documents": docs, "count": len(docs)})
+            if not self._context:
+                self._context = "\n".join(d["text"] for d in docs)
+            scope.end()
+        elif name == "LLMPredictEndEvent":
+            out = getattr(event, "output", None)
+            text = getattr(out, "text", None) or (str(out) if out else "")
+            if text and not self._answer:
+                self._answer = str(text)
+        elif name == "SynthesizeEndEvent":
+            scope = self._pop("generation")
+            if scope is not None:
+                response = getattr(event, "response", None)
+                text = str(response) if response is not None else ""
+                scope.set(output={"answer": text or self._answer})
+                scope.end()
+            if not self._answer:
+                response = getattr(event, "response", None)
+                if response is not None:
+                    self._answer = str(response)
+        elif name == "QueryEndEvent":
+            scope = self._pop("assembly")
+            if scope is not None:
+                response = getattr(event, "response", None)
+                scope.set(output={"response": str(response)[:400] if response else ""})
+                scope.end()
+            if response := getattr(event, "response", None):
+                if not self._answer:
+                    self._answer = str(response)
+        # Embedding*/chunking/other events are intentionally ignored.
+
+    def _push(self, stage: str, input_payload: dict) -> None:
+        self._open.setdefault(stage, []).append(
+            self._ctx.begin_stage(stage, input=input_payload)
+        )
+
+    def _pop(self, stage: str) -> Optional[StageScope]:
+        stack = self._open.get(stage)
+        return stack.pop() if stack else None
+
+    # ---- lifecycle -----------------------------------------------------------
     @property
     def query_id(self) -> str:
         return self._ctx.query_id
@@ -187,11 +154,16 @@ class LlamaIndexTraceHandler:
         if self._finalized:
             return self._ctx.trace
         self._finalized = True
-        try:  # detach so later runs don't append to this trace
-            self._dispatcher.remove_span_handler(self._span_handler)
-            self._dispatcher.remove_event_handler(self._event_handler)
+        try:  # detach so later query runs don't append to this trace
+            self._dispatcher.remove_event_handler(self._handler)
         except Exception:
             pass
+        # Close any stages left open by an aborted run.
+        for stack in self._open.values():
+            for scope in stack:
+                scope.end(status=scope.event.status, error=scope.event.error)
+        self._open.clear()
+
         trace = self._ctx.finish(answer=self._answer, final_context=self._context)
         trace.framework = "llamaindex"
         trace.needed_chunk_ids = list(self._needed)
