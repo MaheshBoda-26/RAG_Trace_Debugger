@@ -2,6 +2,7 @@
 import type {
   CorpusResponse,
   EvalResults,
+  HealResponse,
   QueryRequest,
   Trace,
   TraceSummary,
@@ -29,13 +30,32 @@ async function postJson<T>(url: string, body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export interface HealthResponse {
+  status: string;
+  gemini_enabled: boolean;
+  doc_count: number;
+  chunk_count: number;
+  metrics: {
+    uptime_seconds: number;
+    total_queries_served: number;
+    error_count: number;
+    avg_overhead_ms: number;
+  };
+  circuit_breaker: {
+    state: string;
+    consecutive_failures: number;
+  };
+}
+
 export const api = {
-  health: () => getJson<{ status: string; gemini_enabled: boolean; doc_count: number; chunk_count: number }>('/api/health'),
+  health: () => getJson<HealthResponse>('/api/health'),
 
   listTraces: (failure?: string) =>
     getJson<TraceSummary[]>(`/api/traces${failure && failure !== 'all' ? `?failure=${failure}` : ''}`),
   getTrace: (id: string) => getJson<Trace>(`/api/traces/${id}`),
   runQuery: (req: QueryRequest) => postJson<Trace>('/api/query', req),
+  healTrace: (queryId: string) =>
+    postJson<HealResponse>('/api/query/heal', { query_id: queryId }),
   clearTraces: () => deleteTraces(),
 
   getCorpus: () => getJson<CorpusResponse>('/api/corpus'),

@@ -49,6 +49,19 @@ export interface StageEvent {
   meta: Record<string, unknown>;
 }
 
+export type IntentClass =
+  | 'FACT_LOOKUP'
+  | 'PROCEDURE'
+  | 'COMPARISON'
+  | 'SUMMARIZATION'
+  | 'OTHER';
+
+export type RiskLevel = 'high' | 'medium' | 'low';
+
+export type IntentRiskProfile = Partial<Record<Exclude<StageName, 'query_rewrite'>, RiskLevel>>;
+
+export type Framework = 'native' | 'langchain' | 'llamaindex' | 'custom';
+
 export interface Trace {
   query_id: string;
   query: string;
@@ -58,6 +71,11 @@ export interface Trace {
   indicated_failure: FailureStage;
   failure_reason: string;
   key_terms: string[];
+  intent: string;
+  intent_confidence: number;
+  intent_risk_profile: IntentRiskProfile;
+  framework: Framework;
+  needed_chunk_ids: string[];
   ground_truth_failure: FailureStage | null;
   expected_answer: string | null;
   localization_correct: boolean | null;
@@ -74,6 +92,27 @@ export interface TraceSummary {
   answer_preview: string;
   stage_count: number;
   total_duration_ms: number;
+  intent: string;
+  framework: Framework;
+}
+
+export interface HealAdjustment {
+  failure_stage: string;
+  adjusted_params: Record<string, unknown>;
+  rationale: string;
+  applied: boolean;
+  healed_query_id: string | null;
+  original_failure: string;
+  healed_failure: string;
+  signals_before: Record<string, boolean>;
+  signals_after: Record<string, boolean>;
+  improved: boolean;
+}
+
+export interface HealResponse {
+  original: Trace;
+  healed: Trace;
+  adjustment: HealAdjustment;
 }
 
 export interface CorpusDoc {
@@ -102,6 +141,13 @@ export interface EvalQueryResult {
   trace_overhead_ms: number;
   total_duration_ms: number;
   failure_reason: string;
+  intent: string;
+}
+
+export interface IntentStratifiedAccuracy {
+  accuracy: number;
+  correct: number;
+  total: number;
 }
 
 export interface EvalResults {
@@ -117,10 +163,13 @@ export interface EvalResults {
   };
   per_query: EvalQueryResult[];
   confusion: Record<string, Record<string, number>>;
+  accuracy_by_intent: Record<string, IntentStratifiedAccuracy>;
+  intent_classification_accuracy: number | null;
 }
 
 export interface QueryRequest {
   query: string;
+  query_id?: string;
   key_terms?: string[];
   needed_chunk_ids?: string[];
   retrieval_k?: number;
@@ -128,6 +177,42 @@ export interface QueryRequest {
   context_max_chars?: number;
   mock_drift?: boolean;
 }
+
+// ---- Intent display helpers -------------------------------------------------
+
+export const INTENT_LABELS: Record<string, string> = {
+  FACT_LOOKUP: 'Fact Lookup',
+  PROCEDURE: 'Procedure',
+  COMPARISON: 'Comparison',
+  SUMMARIZATION: 'Summarization',
+  OTHER: 'Other',
+};
+
+export const INTENT_COLORS: Record<string, string> = {
+  FACT_LOOKUP:
+    'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-900/40 dark:text-sky-300 dark:border-sky-700',
+  PROCEDURE:
+    'bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-900/40 dark:text-violet-300 dark:border-violet-700',
+  COMPARISON:
+    'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/40 dark:text-cyan-300 dark:border-cyan-700',
+  SUMMARIZATION:
+    'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300 dark:bg-fuchsia-900/40 dark:text-fuchsia-300 dark:border-fuchsia-700',
+  OTHER:
+    'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-700',
+};
+
+export const RISK_COLORS: Record<RiskLevel, string> = {
+  high: 'bg-rose-500',
+  medium: 'bg-amber-400',
+  low: 'bg-emerald-500',
+};
+
+export const FRAMEWORK_LABELS: Record<Framework, string> = {
+  native: 'Native',
+  langchain: 'LangChain',
+  llamaindex: 'LlamaIndex',
+  custom: 'Custom SDK',
+};
 
 // ---- Display helpers -------------------------------------------------------
 
