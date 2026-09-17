@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, deleteTraces } from './api/client';
-import type { FailureStage, Trace, TraceSummary } from './types/trace';
+import type {
+  FailureStage,
+  Framework,
+  HealResponse,
+  Trace,
+  TraceSummary,
+} from './types/trace';
 import { QueryList } from './components/QueryList';
 import { TraceTimeline } from './components/TraceTimeline';
+import { ComparisonView } from './components/ComparisonView';
 import { EvalPanel } from './components/EvalPanel';
 
 type Tab = 'debugger' | 'eval' | 'corpus';
@@ -13,7 +20,13 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [trace, setTrace] = useState<Trace | null>(null);
   const [filter, setFilter] = useState<FailureStage | 'all'>('all');
-  const [health, setHealth] = useState<{ gemini_enabled: boolean } | null>(null);
+  const [frameworkFilter, setFrameworkFilter] = useState<Framework | 'all'>('all');
+  const [health, setHealth] = useState<{
+    gemini_enabled: boolean;
+    metrics?: { uptime_seconds: number; total_queries_served: number; error_count: number; avg_overhead_ms: number };
+    circuit_breaker?: { state: string; consecutive_failures: number };
+  } | null>(null);
+  const [healData, setHealData] = useState<HealResponse | null>(null);
 
   const [queryText, setQueryText] = useState('');
   const [queryTerms, setQueryTerms] = useState('');
@@ -43,11 +56,15 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
   useEffect(() => {
     if (!selectedId) {
       setTrace(null);
+      setHealData(null);
       return;
     }
     api
       .getTrace(selectedId)
-      .then(setTrace)
+      .then((t) => {
+        setTrace(t);
+        setHealData(null);
+      })
       .catch((e) => setError(e instanceof Error ? e.message : 'failed to load trace'));
   }, [selectedId]);
 
@@ -78,7 +95,14 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
     setTraces([]);
     setSelectedId(null);
     setTrace(null);
+    setHealData(null);
   }
+
+  // Client-side framework filter (the API filters by failure stage only).
+  const visibleTraces =
+    frameworkFilter === 'all'
+      ? traces
+      : traces.filter((t) => (t.framework ?? 'native') === frameworkFilter);
 
   return (
     <div className="min-h-screen bg-bg text-text">
@@ -153,11 +177,13 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
 
               <div className="border border-border rounded-lg bg-bg-elevated overflow-hidden h-[60vh]">
                 <QueryList
-                  traces={traces}
+                  traces={visibleTraces}
                   selectedId={selectedId}
                   onSelect={setSelectedId}
                   filter={filter}
                   onFilter={setFilter}
+                  frameworkFilter={frameworkFilter}
+                  onFrameworkFilter={setFrameworkFilter}
                 />
               </div>
 
@@ -177,7 +203,28 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
                     <div className="font-mono text-xs text-text-dim mb-0.5">{trace.query_id}</div>
                     <h2 className="text-base font-medium text-text">{trace.query}</h2>
                   </div>
-                  <TraceTimeline trace={trace} />
+                  {healData && (
+                    <div className="mb-4" role="region" aria-label="Self-healing comparison">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold text-text">Self-healing comparison</h3>
+                        <button
+                          onClick={() => setHealData(null)}
+                          className="text-xs px-2 py-1 rounded border border-border text-text-muted hover:bg-bg-elevated transition-colors"
+                        >
+                          Close comparison
+                        </button>
+                      </div>
+                      <ComparisonView data={healData} />
+                    </div>
+                  )}
+                  <TraceTimeline
+                    trace={trace}
+                    onHealed={(response) => {
+                      setHealData(response);
+                      // Refresh the list so the healed trace shows up.
+                      loadTraces();
+                    }}
+                  />
                 </div>
               ) : (
                 <div className="border border-dashed border-border rounded-lg p-12 text-center text-text-dim">
@@ -198,7 +245,13 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
       </main>
 
       <footer className="max-w-7xl mx-auto px-4 py-4 text-center text-xs text-text-dim">
-        RAG Trace Debugger · diagnostic tool, not a fix-it tool · localizes failure, does not auto-resolve
+        RAG Trace Debugger · diagnostic tool with self-healing suggestions · localizes failure, proposes parameter fixes
+        {health?.metrics && (
+          <span className="block mt-1">
+            uptime {Math.round(health.metrics.uptime_seconds)}s · {health.metrics.total_queries_served} queries served ·{' '}
+            {health.metrics.error_count} errors · avg overhead {health.metrics.avg_overhead_ms} ms
+          </span>
+        )}
       </footer>
     </div>
   );

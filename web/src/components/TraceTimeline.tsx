@@ -4,7 +4,6 @@ import {
   INTENT_LABELS,
   RISK_COLORS,
   STAGE_ORDER,
-  type FailureStage,
   type IntentRiskProfile,
   type StageEvent,
   type StageName,

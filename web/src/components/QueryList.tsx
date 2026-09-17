@@ -1,4 +1,10 @@
-import { FAILURE_COLORS, type FailureStage, type TraceSummary } from '../types/trace';
+import {
+  FAILURE_COLORS,
+  FRAMEWORK_LABELS,
+  type FailureStage,
+  type Framework,
+  type TraceSummary,
+} from '../types/trace';
 import { FailureBadge } from './FailureBadge';
 
 const FILTERS: { label: string; value: FailureStage | 'all' }[] = [
@@ -9,6 +15,37 @@ const FILTERS: { label: string; value: FailureStage | 'all' }[] = [
   { label: 'Assembly', value: 'assembly' },
   { label: 'Generation', value: 'generation' },
 ];
+
+const FRAMEWORK_FILTERS: { label: string; value: Framework | 'all' }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Native', value: 'native' },
+  { label: 'LangChain', value: 'langchain' },
+  { label: 'LlamaIndex', value: 'llamaindex' },
+  { label: 'Custom SDK', value: 'custom' },
+];
+
+const FRAMEWORK_ICONS: Record<Framework, React.ReactNode> = {
+  native: (
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    </svg>
+  ),
+  langchain: (
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5m8.5-6.5l1.5-1.5a4 4 0 015.656 5.656l-3 3a4 4 0 01-5.656 0" />
+    </svg>
+  ),
+  llamaindex: (
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+    </svg>
+  ),
+  custom: (
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    </svg>
+  ),
+};
 
 function QueryListSkeleton() {
   return (
@@ -47,6 +84,8 @@ interface QueryListProps {
   onSelect: (id: string) => void;
   filter: FailureStage | 'all';
   onFilter: (f: FailureStage | 'all') => void;
+  frameworkFilter: Framework | 'all';
+  onFrameworkFilter: (f: Framework | 'all') => void;
   loading?: boolean;
 }
 
@@ -56,6 +95,8 @@ export function QueryList({
   onSelect,
   filter,
   onFilter,
+  frameworkFilter,
+  onFrameworkFilter,
   loading = false,
 }: QueryListProps) {
   if (loading) {
@@ -68,7 +109,7 @@ export function QueryList({
         <h2 className="text-sm font-semibold text-text mb-2">
           Traced Queries ({traces.length})
         </h2>
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Filter by failure stage">
+        <div className="flex flex-wrap gap-1 mb-1.5" role="group" aria-label="Filter by failure stage">
           {FILTERS.map((f) => (
             <button
               key={f.value}
@@ -79,6 +120,22 @@ export function QueryList({
                   : 'bg-transparent text-text-muted border-border hover:bg-bg-elevated hover:text-text'
               }`}
               aria-pressed={filter === f.value}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Filter by framework">
+          {FRAMEWORK_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => onFrameworkFilter(f.value)}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-bg ${
+                frameworkFilter === f.value
+                  ? 'bg-primary text-white border-primary shadow-sm'
+                  : 'bg-transparent text-text-muted border-border hover:bg-bg-elevated hover:text-text'
+              }`}
+              aria-pressed={frameworkFilter === f.value}
             >
               {f.label}
             </button>
@@ -112,7 +169,16 @@ export function QueryList({
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="font-mono text-xs text-text-dim truncate max-w-[120px]">{t.query_id}</span>
-                    <FailureBadge stage={t.indicated_failure} size="sm" />
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className="inline-flex items-center text-text-dim"
+                        title={FRAMEWORK_LABELS[t.framework ?? 'native']}
+                        aria-label={FRAMEWORK_LABELS[t.framework ?? 'native']}
+                      >
+                        {FRAMEWORK_ICONS[t.framework ?? 'native']}
+                      </span>
+                      <FailureBadge stage={t.indicated_failure} size="sm" />
+                    </span>
                   </div>
                   <p className="text-sm text-text-muted line-clamp-2">{t.query}</p>
                   <div className="mt-1 flex items-center gap-2 text-xs text-text-dim">

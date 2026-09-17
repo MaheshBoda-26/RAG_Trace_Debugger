@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import type { EvalResults, FailureStage } from '../types/trace';
+import { INTENT_COLORS, INTENT_LABELS } from '../types/trace';
 import { FailureBadge } from './FailureBadge';
 
 function pct(n: number): string {
@@ -162,9 +163,75 @@ export function EvalPanel({ loading: initialLoading = false }: EvalPanelProps = 
             >
               {results.gemini_enabled ? 'Gemini 2.5-flash' : 'deterministic mock'}
             </span>
+            {results.intent_classification_accuracy !== null &&
+              results.intent_classification_accuracy !== undefined && (
+                <>
+                  <span className="text-border">·</span>
+                  <span>
+                    Intent accuracy:{' '}
+                    <span className="font-medium text-text-muted">
+                      {(results.intent_classification_accuracy * 100).toFixed(1)}%
+                    </span>
+                  </span>
+                </>
+              )}
             <span className="text-border">·</span>
             <span className="font-mono">{results.ran_at}</span>
           </div>
+
+          {results.accuracy_by_intent && Object.keys(results.accuracy_by_intent).length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-text-muted mb-2">
+                Localization accuracy by query intent
+              </h4>
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-xs" role="table" aria-label="Accuracy per intent class">
+                  <thead>
+                    <tr className="text-left text-text-dim border-b border-border bg-bg">
+                      <th className="py-2 px-3 font-medium">Intent</th>
+                      <th className="py-2 px-3 font-medium">Correct / Total</th>
+                      <th className="py-2 px-3 font-medium">Accuracy</th>
+                      <th className="py-2 px-3 font-medium w-1/3">Weakest classes (left)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(results.accuracy_by_intent)
+                      .sort((a, b) => a[1].accuracy - b[1].accuracy)
+                      .map(([intent, stat]) => (
+                        <tr key={intent} className="border-b border-border hover:bg-bg">
+                          <td className="py-2 px-3">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-2 py-0.5 font-medium ${
+                                INTENT_COLORS[intent] ?? INTENT_COLORS.OTHER
+                              }`}
+                            >
+                              {INTENT_LABELS[intent] ?? intent}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 font-mono text-text-muted">
+                            {stat.correct}/{stat.total}
+                          </td>
+                          <td
+                            className={`py-2 px-3 font-medium tabular-nums ${
+                              stat.accuracy >= 0.85
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-rose-600 dark:text-rose-400'
+                            }`}
+                          >
+                            {pct(stat.accuracy)}
+                          </td>
+                          <td className="py-2 px-3">
+                            {stat.accuracy < 0.85 && (
+                              <span className="text-text-dim">below 85% target</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div>
             <h4 className="text-xs font-semibold text-text-muted mb-2">Per-query results</h4>
