@@ -144,12 +144,7 @@ def post_query_heal(req: QueryRequest):
         + (healed.failure_reason or "")
     )
 
-    improvement = {
-        "original_failure": original.indicated_failure.value,
-        "healed_failure": healed.indicated_failure.value,
-        "improved": healed.indicated_failure == FailureStage.NONE
-        and original.indicated_failure != FailureStage.NONE,
-    }
+    improvement = _improvement(original, healed)
 
     metrics.record_query(healed.trace_overhead_ms)
     return HealResponse(
@@ -157,6 +152,49 @@ def post_query_heal(req: QueryRequest):
         healed=healed.model_dump(mode="json"),
         adjustment={**adjustment.to_dict(), **improvement},
     )
+
+
+def _signal_state(trace: Trace) -> dict[str, bool]:
+    """Content signals the localizer's structural checks rely on."""
+    retrieval = next((s for s in trace.stages if s.stage.value == "retrieval"), None)
+    rerank = next((s for s in trace.stages if s.stage.value == "rerank"), None)
+    assembly = next((s for s in trace.stages if s.stage.value == "assembly"), None)
+    retrieved_ids = {c.chunk_id for c in (retrieval.candidates if retrieval else [])}
+    kept_ids = {c.chunk_id for c in (rerank.candidates if rerank else []) if c.kept}
+    context = (assembly.output.get("context") if assembly else trace.final_context) or ""
+    ctx_tokens = {t.lower().strip(".,;:!?(\"')[]*_`~|#-") for t in context.split()}
+    keys = [k.lower() for k in (trace.key_terms or []) if k]
+    return {
+        "needed_retrieved": bool(trace.needed_chunk_ids)
+        and all(cid in retrieved_ids for cid in trace.needed_chunk_ids),
+        "needed_kept": bool(trace.needed_chunk_ids)
+        and all(cid in kept_ids for cid in trace.needed_chunk_ids),
+        "key_terms_in_context": bool(keys) and all(k in ctx_tokens for k in keys),
+    }
+
+
+def _improvement(original: Trace, healed: Trace) -> dict[str, Any]:
+    """Honest before/after comparison of the structural signals.
+
+    'improved' means the healed run either localizes clean OR recovered a
+    structural signal that was missing before (needed chunks kept, key terms
+    in context). With the deterministic mock generator the failure can shift
+    to 'generation' after an upstream fix — that still counts as progress
+    because the information now reaches the model.
+    """
+    before = _signal_state(original)
+    after = _signal_state(healed)
+    recovered = any(after[k] and not before[k] for k in before)
+    return {
+        "original_failure": original.indicated_failure.value,
+        "healed_failure": healed.indicated_failure.value,
+        "signals_before": before,
+        "signals_after": after,
+        "improved": (
+            healed.indicated_failure == FailureStage.NONE
+            or recovered
+        ),
+    }
 
 
 def _needed_ids(trace: Trace) -> list[str]:
