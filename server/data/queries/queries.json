@@ -1,11 +1,12 @@
 {
-  "_comment": "Labeled test set for the RAG Trace Debugger eval. Each query has a ground-truth failure stage and the chunk id(s) that contain a correct answer (needed_chunk_ids). The eval runner compares the localizer's indicated_failure against ground_truth_failure. chunk_id format is <doc_stem>#<chunk_index>; the corpus is chunked by markdown paragraph (see rag/corpus.py).",
+  "_comment": "Labeled test set for the RAG Trace Debugger eval. Each query has a ground-truth failure stage and the chunk id(s) that contain a correct answer (needed_chunk_ids). The eval runner compares the localizer's indicated_failure against ground_truth_failure, and expected_intent against classify_intent (Phase 3). chunk_id format is <doc_stem>#<chunk_index>; the corpus is chunked by markdown paragraph (see rag/corpus.py).",
   "queries": [
     {
       "id": "q01",
       "query": "How many active multi-currency wallets can I have on the Enterprise plan?",
       "expected_answer": "Up to 50 active multi-currency wallets on the Enterprise plan.",
       "key_terms": ["50", "wallets"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["pricing_enterprise#1"],
       "ground_truth_failure": "none",
       "notes": "Clean query. 'enterprise' + 'wallets' should retrieve pricing_enterprise cleanly."
@@ -15,6 +16,7 @@
       "query": "What is the first-response time for a Severity-1 incident on Enterprise?",
       "expected_answer": "15 minutes for Severity-1 incidents on Enterprise.",
       "key_terms": ["15-minute", "15", "minutes"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["support_sla#1"],
       "ground_truth_failure": "none",
       "notes": "Clean query; the support_sla table contains the answer directly."
@@ -24,6 +26,7 @@
       "query": "What is the refund window for a new subscription?",
       "expected_answer": "14 days for a full refund.",
       "key_terms": ["14", "days"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["refund_policy#0"],
       "ground_truth_failure": "none",
       "notes": "Clean retrieval/answer expected."
@@ -33,6 +36,7 @@
       "query": "If my QuickBooks sync is failing, what tier of QuickBooks do I need?",
       "expected_answer": "QuickBooks Online Advanced tier is required; the standard tier is not supported.",
       "key_terms": ["advanced"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["integrations#2"],
       "ground_truth_failure": "none",
       "notes": "Clean; the gotcha is explicitly stated in the integration doc."
@@ -42,6 +46,7 @@
       "query": "What is the cost of an additional seat on the Growth plan?",
       "expected_answer": "$18 per additional seat on Growth.",
       "key_terms": ["$18", "18"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["pricing#0"],
       "ground_truth_failure": "none",
       "notes": "Cross-encoder reranker correctly identifies the pricing doc. The legacy contradiction_seats doc no longer outranks it."
@@ -51,6 +56,7 @@
       "query": "How many seats come with the Growth plan?",
       "expected_answer": "5 seats included on Growth.",
       "key_terms": ["5", "seats"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["pricing#0"],
       "ground_truth_failure": "none",
       "notes": "Clean retrieval + correct answer with mock generator. Relabeled from 'rerank' — pricing#0 is retrieved and kept; the model returns the correct table row."
@@ -60,6 +66,7 @@
       "query": "Can I stream my audit logs to my own S3 bucket, and how is the export API limited?",
       "expected_answer": "Yes, on Enterprise; the export API is rate-limited to 10 requests per minute.",
       "key_terms": ["10", "requests", "minute"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["audit_logs#2"],
       "ground_truth_failure": "generation",
       "notes": "GENERATION failure. audit_logs#2 is retrieved and kept with '10 requests per minute', but the mock generator picks a different sentence. Relabeled from 'retrieval'."
@@ -69,6 +76,7 @@
       "query": "What regions are available for data residency, and can I change it myself later?",
       "expected_answer": "us-east-1 default; Enterprise can elect eu-west-1 or ap-southeast-2; cannot self-serve change after provisioning.",
       "key_terms": ["eu-west-1", "ap-southeast-2", "provisioning"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["data_residency#0", "data_residency#1"],
       "ground_truth_failure": "generation",
       "notes": "GENERATION failure. Both data_residency chunks are retrieved and kept with all key terms, but the model only returns the first paragraph and misses 'eu-west-1', 'ap-southeast-2', and 'provisioning'. Relabeled from 'retrieval'."
@@ -78,6 +86,7 @@
       "query": "I'm on Enterprise and my account owner hasn't set up MFA. What happens to billing access?",
       "expected_answer": "The account is locked out of billing actions after 7 days without MFA on the owner.",
       "key_terms": ["locked", "7", "days", "billing"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["mfa#0"],
       "ground_truth_failure": "generation",
       "notes": "GENERATION failure probe. Context is easy to retrieve; the failure mode is whether the model restates 'locked out of billing after 7 days' accurately vs. hedging/omitting. Under mock fallback the answer will miss key terms on purpose."
@@ -87,6 +96,7 @@
       "query": "What happens to my data if I fully cancel my account?",
       "expected_answer": "Data is retained for 30 days before permanent deletion, then unrecoverable.",
       "key_terms": ["30", "days", "deletion"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["offboarding#1"],
       "ground_truth_failure": "generation",
       "notes": "GENERATION failure probe. Retrieval should find offboarding; the model may give a generic answer instead of the specific 30-day window."
@@ -96,6 +106,7 @@
       "query": "What HTTP status and header do I get when I exceed the API rate limit?",
       "expected_answer": "HTTP 429 with a Retry-After header in seconds.",
       "key_terms": ["429", "retry-after"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["api_rate_limits#1"],
       "ground_truth_failure": "none",
       "notes": "Clean retrieval + correct answer. api_rate_limits#1 is kept with '429' and 'retry-after'. Relabeled from 'assembly'."
@@ -105,6 +116,7 @@
       "query": "Summarize what the Starter plan does and does not include.",
       "expected_answer": "Starter ($29/mo, 2 seats) includes 60 RPM API, 30-day audit logs, optional MFA; does NOT include automated bank reconciliation.",
       "key_terms": ["reconciliation", "$29"],
+      "expected_intent": "SUMMARIZATION",
       "needed_chunk_ids": ["pricing#0", "pricing#2"],
       "ground_truth_failure": "rerank",
       "notes": "RERANK failure. pricing#0 (with $29) is retrieved but dropped at rerank; only pricing#2 (reconciliation note) is kept. $29 is in neither context nor answer. Relabeled from 'assembly'."
@@ -114,6 +126,7 @@
       "query": "What file formats are included in the data export ZIP?",
       "expected_answer": "CSV files for transactions, invoices, and contacts, plus a JSON manifest.",
       "key_terms": ["csv", "json", "manifest"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["offboarding#0"],
       "ground_truth_failure": "generation",
       "notes": "GENERATION failure. offboarding#0 is retrieved and kept with 'csv', 'json', 'manifest', but the mock generator picks a different sentence. Relabeled from 'retrieval' after observation."
@@ -123,6 +136,7 @@
       "query": "What is the Starter plan price and what does it exclude?",
       "expected_answer": "$29/month, 2 seats; does not include automated bank reconciliation.",
       "key_terms": ["$29", "reconciliation"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["pricing#0", "pricing#2"],
       "ground_truth_failure": "generation",
       "context_max_chars": 300,
@@ -133,6 +147,7 @@
       "query": "What is the audit-log export API rate limit?",
       "expected_answer": "10 requests per minute.",
       "key_terms": ["10", "rate"],
+      "expected_intent": "FACT_LOOKUP",
       "needed_chunk_ids": ["audit_logs#2"],
       "ground_truth_failure": "assembly",
       "context_max_chars": 200,

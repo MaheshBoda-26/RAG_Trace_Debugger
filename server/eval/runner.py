@@ -35,6 +35,7 @@ class QueryResult:
     trace_overhead_ms: float
     total_duration_ms: float
     failure_reason: str = ""
+    intent: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -47,6 +48,7 @@ class QueryResult:
             "trace_overhead_ms": self.trace_overhead_ms,
             "total_duration_ms": self.total_duration_ms,
             "failure_reason": self.failure_reason,
+            "intent": self.intent,
         }
 
 
@@ -62,6 +64,8 @@ class EvalResults:
     p95_overhead_ms: float
     per_query: list[QueryResult] = field(default_factory=list)
     confusion: dict[str, dict[str, int]] = field(default_factory=dict)
+    accuracy_by_intent: dict[str, dict[str, float]] = field(default_factory=dict)
+    intent_classification_accuracy: Optional[float] = None
 
     def to_dict(self) -> dict:
         return {
@@ -77,6 +81,12 @@ class EvalResults:
             },
             "per_query": [q.to_dict() for q in self.per_query],
             "confusion": self.confusion,
+            "accuracy_by_intent": self.accuracy_by_intent,
+            "intent_classification_accuracy": (
+                round(self.intent_classification_accuracy, 4)
+                if self.intent_classification_accuracy is not None
+                else None
+            ),
         }
 
 
@@ -112,6 +122,10 @@ def run_eval(clear_previous: bool = True) -> EvalResults:
     per_query: list[QueryResult] = []
     confusion: dict[str, dict[str, int]] = {}
     overheads: list[float] = []
+    intent_totals: dict[str, int] = {}
+    intent_correct: dict[str, int] = {}
+    intent_classification_correct = 0
+    intent_classification_total = 0
 
     for spec in queries:
         # Mock-drift the generation-stage probes so the failure mode triggers
@@ -139,15 +153,39 @@ def run_eval(clear_previous: bool = True) -> EvalResults:
                 trace_overhead_ms=trace.trace_overhead_ms,
                 total_duration_ms=trace.total_duration_ms,
                 failure_reason=trace.failure_reason,
+                intent=trace.intent,
             )
         )
         overheads.append(trace.trace_overhead_ms)
         confusion.setdefault(gt, {})
         confusion[gt][ind] = confusion[gt].get(ind, 0) + 1
+        # Intent-stratified accuracy (Phase 3).
+        intent_totals[trace.intent] = intent_totals.get(trace.intent, 0) + 1
+        if correct:
+            intent_correct[trace.intent] = intent_correct.get(trace.intent, 0) + 1
+        expected_intent = spec.get("expected_intent")
+        if expected_intent:
+            intent_classification_total += 1
+            if trace.intent == expected_intent:
+                intent_classification_correct += 1
 
     correct_count = sum(1 for q in per_query if q.correct)
     total = len(per_query)
     accuracy = correct_count / total if total else 0.0
+
+    accuracy_by_intent = {
+        intent: {
+            "accuracy": round(intent_correct.get(intent, 0) / intent_totals[intent], 4),
+            "correct": intent_correct.get(intent, 0),
+            "total": intent_totals[intent],
+        }
+        for intent in sorted(intent_totals)
+    }
+    intent_classification_accuracy = (
+        intent_classification_correct / intent_classification_total
+        if intent_classification_total
+        else None
+    )
 
     results = EvalResults(
         ran_at=datetime.now(timezone.utc).isoformat(),
@@ -160,6 +198,7 @@ def run_eval(clear_previous: bool = True) -> EvalResults:
         p95_overhead_ms=_percentile(overheads, 95),
         per_query=per_query,
         confusion=confusion,
+        accuracy_by_intent=accuracy_by_intent,
     )
 
     RESULTS_PATH.write_text(json.dumps(results.to_dict(), indent=2), encoding="utf-8")
@@ -172,6 +211,8 @@ if __name__ == "__main__":
     print(f"\n=== Eval results ({res.ran_at}) ===")
     print(f"Gemini enabled : {res.gemini_enabled}")
     print(f"Accuracy       : {res.correct}/{res.total} = {res.localization_accuracy:.1%}")
+    if res.intent_classification_accuracy is not None:
+        print(f"Intent accuracy: {res.intent_classification_accuracy:.1%}")
     print(f"Overhead avg   : {res.avg_overhead_ms:.3f} ms/query")
     print(f"Overhead p95   : {res.p95_overhead_ms:.3f} ms/query")
     print(f"Results written: {RESULTS_PATH}")

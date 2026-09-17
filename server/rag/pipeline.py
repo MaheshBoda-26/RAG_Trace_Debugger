@@ -15,6 +15,7 @@ from ..trace.events import Candidate
 from .bm25 import BM25Index
 from .corpus import Corpus, load_corpus
 from .embeddings import Embeddings
+from .intent import classify_intent, risk_profile
 from .retrieval import retrieve
 from .stages import assemble_context, generate_answer, rerank, rewrite_query
 
@@ -83,6 +84,10 @@ def run_query(
     """
     ensure_dirs()
     comps = get_components()
+
+    # Intent classification (Phase 3) — cached per query text, recorded on the
+    # trace with its per-stage risk profile.
+    intent, intent_confidence = classify_intent(query)
 
     ctx = tracer.start(query, query_id=query_id, key_terms=key_terms or [])
 
@@ -154,7 +159,10 @@ def run_query(
     # needed_chunk_ids / key_terms which the localizer uses intentionally).
     trace.expected_answer = expected_answer
     trace.ground_truth_failure = ground_truth_failure
-
+    trace.needed_chunk_ids = list(needed_chunk_ids or [])
+    trace.intent = intent
+    trace.intent_confidence = intent_confidence
+    trace.intent_risk_profile = risk_profile(intent)
     # Localize using the eval-provided needed_chunk_ids + key_terms.
     indicated, reason = localize_trace(
         trace,

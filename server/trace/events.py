@@ -105,6 +105,12 @@ class Trace(BaseModel):
     # the dashboard list view can show a short preview without loading stages.
     final_context: str = ""
 
+    # Query intent (Phase 3): classified bucket + confidence, plus the
+    # per-stage risk profile the dashboard renders.
+    intent: str = ""
+    intent_confidence: float = 0.0
+    intent_risk_profile: dict[str, str] = Field(default_factory=dict)
+
     # Localizer output (FR7).
     indicated_failure: FailureStage = FailureStage.NONE
     failure_reason: str = ""
@@ -116,6 +122,9 @@ class Trace(BaseModel):
     ground_truth_failure: Optional[FailureStage] = None
     expected_answer: Optional[str] = None
     localization_correct: Optional[bool] = None
+    # Chunks the localizer needs to find (retrieval/rerank signals). Persisted
+    # so /api/query/heal can re-run with the same localization signals.
+    needed_chunk_ids: list[str] = Field(default_factory=list)
 
     stages: list[StageEvent] = Field(default_factory=list)
 
@@ -133,6 +142,7 @@ class TraceSummary(BaseModel):
     answer_preview: str
     stage_count: int
     total_duration_ms: float
+    intent: str = ""
 
 
 def summarize(trace: Trace) -> TraceSummary:
@@ -144,4 +154,5 @@ def summarize(trace: Trace) -> TraceSummary:
         answer_preview=(trace.answer[:160] + "…") if len(trace.answer) > 160 else trace.answer,
         stage_count=len(trace.stages),
         total_duration_ms=trace.total_duration_ms,
+        intent=trace.intent,
     )
