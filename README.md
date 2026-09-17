@@ -16,6 +16,7 @@ Production RAG systems fail silently. When a RAG-powered agent gives a wrong ans
 | **Query Intent Classification** | Every query is classified (FACT_LOOKUP / PROCEDURE / COMPARISON / SUMMARIZATION / OTHER) with confidence; the dashboard shows an intent badge plus per-stage **risk profile** for the intent. Eval results are stratified by intent. |
 | **Instrumentation SDK** | `@traced_stage` + `InstrumentedPipeline` for any Python pipeline, plus drop-in **LangChain** and **LlamaIndex** adapters. Framework-filterable in the dashboard. |
 | **Production hardening** | Circuit breaker + timeout on the LLM call (mock fallback with visible prefix), per-IP rate limiting (429 + `Retry-After`), and `/api/health` with uptime, query counters, and avg overhead. |
+| **Art direction** | The whole surface was rebuilt on a "forensic instrument" system — see [Frontend & design](#frontend--design). |
 
 ---
 
@@ -201,25 +202,87 @@ The eval runner compares the localizer's `indicated_failure` against `ground_tru
 
 These are **actual measured results** on the controlled test set, not assumptions (PRD §7). The generator mode (Gemini vs. mock) affects generation-stage realism; the headline number is reported honestly either way.
 
-### Mock generator (no API key) — measured 2026-07-22
+### Mock generator (no API key) — recorded 2026-09-17
 
-| Metric | Value |
-|--------|-------|
-| **Localization accuracy** | **15 / 15 = 100%** |
-| Average tracing overhead | 0.089 ms / query |
-| p95 tracing overhead | 0.230 ms / query |
-| Generator | deterministic mock |
+Source of truth: `server/data/eval/results.json`.
 
-| Failure mode | Count in test set |
-|--------------|-------------------|
-| none (clean) | 5 |
-| rerank | 2 |
-| generation | 7 |
+| Metric | Value | Scope |
+|--------|-------|-------|
+| **Localization accuracy** | **15 / 15** | one labeled set, one pipeline |
+| Intent classification | 15 / 15 | same set — 14 of 15 cases are one class |
+| Tracer bookkeeping | avg 0.053 ms · p95 0.114 ms · max 0.259 ms | the collector timing itself |
+| Generator | deterministic mock | no API key |
+
+| Labeled stage | Count |
+|--------------|-------|
+| none (clean) | 7 |
+| generation | 6 |
+| rerank | 1 |
 | assembly | 1 |
 
-**Honest caveat:** 100% accuracy reflects a test set whose ground-truth labels were calibrated to this specific pipeline's behavior. The PRD explicitly states results on this controlled set may not generalize to arbitrary production RAG systems (§9). The BM25-only mock run has no retrieval failures because BM25 is a full-corpus search; a dense+hybrid run with a live Gemini key may surface retrieval misses on low-overlap queries.
+**Honest caveats, stated plainly.** The labels were authored alongside the pipeline, so 15/15 measures internal consistency rather than generalization. Rerank and assembly rest on **one case each** — read those as anecdotes. The overhead figure is the collector measuring its own bookkeeping, **not** an end-to-end latency A/B. The BM25-only mock run surfaces no retrieval failures because BM25 searches the whole corpus; a dense+hybrid run with a live Gemini key may expose retrieval misses on low-overlap queries.
 
-To re-run the eval: `python -m server.eval.runner` or the **Evaluation → Run eval** button in the dashboard.
+**Not measured yet:** agreement between the localizer and an independent annotator (κ) on a few hundred cases. That is the measurement that would turn 15/15 into evidence about accuracy rather than consistency, and it is listed here as the honest next step rather than implied away.
+
+To re-run the eval: `python -m server.eval.runner` or the **Batch review → run batch** button in the dashboard.
+
+---
+
+## Frontend & design
+
+The interface is built as a **laboratory case file**, because that is what the product actually is: a trace is evidence, the localizer is a verdict, and healing is a re-test.
+
+### Vocabulary
+
+| Machine term | Surface term |
+|---|---|
+| trace / query | **case file** (the `query_id` is the case number) |
+| pipeline stage | **exhibit** ("exhibit 03 — rerank") |
+| `indicated_failure` | **verdict** |
+| heal | **re-test** |
+| eval run | **batch review** |
+
+Exhibits are labelled with their machine names (`query_rewrite`, `retrieval`, …) so the UI, the JSON on disk and the API share one vocabulary with no translation layer to get wrong.
+
+### The token system (`web/src/index.css`)
+
+- **Ink + bone + one accent.** Warm near-black (`oklch(0.155 0.005 60)`), warm off-white for the light theme, and an **oxidized copper** accent (`oklch(0.72 0.14 52)`) — derived from the original orange but aged, so it is a brand colour rather than a framework default.
+- **A failure ramp instead of an alert red.** `rust → copper → brass → blood` for retrieval → rerank → assembly → generation, with muted verdigris for success. A failure looks like part of the instrument.
+- **Hairlines, not cards.** One-pixel rules and near-square geometry (2 px radius); elevation is close to zero. The former glow-on-hover is now a crisp 1 px inset ring.
+- **Numerals are data.** Every comparable number is tabular mono and right-aligned in its column; candidate tables carry 2 px score micro-bars.
+- **Type**: Fraunces (display), Instrument Sans (UI), JetBrains Mono (data) — **self-hosted**, subset to latin/latin-ext, ~206 KB total, no third-party font request. Re-fetch with `python3 web/scripts/fetch-fonts.py`.
+
+### Motion
+
+Motion here is budgeted and meaningful, never ambient:
+
+1. **The run** (`LandingTraceTimeline`) — the hero case executes once in pipeline order (~3.4 s), the faulty exhibit is stamped, and the innocent ones de-emphasise so attention lands on the fault. It **stops and rests**: no looping. It also plays **once per session** (`sessionStorage`), and a **playhead you can drag** scrubs the whole run by hand.
+2. **Scroll-linked narrative** (`ExhibitStack`) — the "what each exhibit captures" section advances 1:1 with scroll position. Scrolling *is* the explanation.
+3. **Micro-interactions** — 120 ms press, 150 ms hover, a 180 ms sliding tab underline, a single 600 ms copper sweep on the parameters a re-test changed. Transform and opacity only.
+4. `prefers-reduced-motion` replaces all of it with the final state, and the hero renders settled instead of animating.
+
+### Accessibility (verified, not asserted)
+
+- **Explicit theming.** `html[data-theme]` with dark as the default and a persisted toggle; `prefers-color-scheme` no longer silently swaps the design. Tailwind's `dark:` variant is rebound to the attribute (`@custom-variant`) so utilities can't disagree with the theme.
+- **Real focus rings.** The previous CSS set `outline: none` plus two non-existent properties (`ring`, `ring-offset`), leaving the app with no visible keyboard focus. It now sets a 2 px copper outline with 2 px offset, and no rule in the stylesheet sets `outline: none`.
+- **Keyboard-first dashboard.** `j`/`k` walk the case list, `/` focuses case search, `⌘K` opens the command palette, `⌘1–3` jump between surfaces.
+- **Measured contrast.** Every text token was probed in both themes against the resolved backgrounds:
+
+| | dark | light |
+|---|---|---|
+| primary accent | 7.14 | 5.89 |
+| success / warning | 7.76 / 9.11 | 5.31 / 4.61 |
+| error / info | 5.8 / 7.49 | 6.08 / 5.48 |
+| body text | 16.0 | 16.0 |
+| muted / dim | 8.4 / 5.52 | 7.84 / 4.7 |
+| failure ramp (query/retrieval/rerank/assembly/generation) | 5.98 / 4.7 / 7.14 / 8.42 / 5.5 | 5.55 / 6.01 / 4.71 / 4.6 / 7.2 |
+| control boundary (`--color-border-strong`) | 3.7 | 4.66 |
+| text on the accent button | 7.51 | 6.2 |
+
+  Decorative hairlines stay deliberately faint; interactive control boundaries use a separate `--color-border-strong` token so they clear the 3:1 floor of WCAG 1.4.11.
+- **axe-core: 0 violations** across `/`, `/debugger`, `/features`, `/about`, `/eval`, `/corpus` in **both** themes (WCAG 2.0/2.1 A+AA and best-practice rulesets).
+
+Re-run the audit: `npm i -D axe-core`, serve `node_modules/axe-core/axe.min.js`, then in the browser console run `axe.run(document)`. The contrast probe recipe (canvas pixel sampling in oklch) is in `.freebuff/run.md`.
 
 ---
 
