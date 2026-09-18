@@ -423,3 +423,4 @@ INFO:     127.0.0.1:51751 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
 
   ➜  Local:   http://127.0.0.1:5173/
 9:52:07 AM [vite] (client) hmr update /src/index.css
+9:56:29 AM [vite] (client) page reload public/__shots/view.html
