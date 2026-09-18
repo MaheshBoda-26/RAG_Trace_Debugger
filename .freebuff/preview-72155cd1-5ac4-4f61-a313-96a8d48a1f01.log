@@ -443,3 +443,7 @@ INFO:     127.0.0.1:51751 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
 10:45:39 AM [vite] (client) page reload public/__shots/viewer.html
 10:51:48 AM [vite] (client) page reload public/__shots/viewer.html
 11:05:11 AM [vite] (client) hmr update /src/DashboardApp.tsx, /src/index.css
+
+  VITE v8.1.5  ready in 227 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
