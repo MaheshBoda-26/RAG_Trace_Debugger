@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>shot viewer</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #1b1b1b;
+      }
+      #box {
+        overflow: auto;
+        width: 100vw;
+        height: 100vh;
+      }
+      img {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="box"><img id="shot" alt="screenshot" /></div>
+    <script>
+      const p = new URLSearchParams(location.search);
+      const img = document.getElementById('shot');
+      img.src = p.get('src') || '375-home.png';
+      img.style.width = (p.get('w') || 375) + 'px';
+      img.style.marginLeft = '-' + (p.get('x') || 0) + 'px';
+      img.style.marginTop = '-' + (p.get('y') || 0) + 'px';
+    </script>
+  </body>
+</html>
