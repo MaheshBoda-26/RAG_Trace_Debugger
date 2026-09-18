@@ -106,6 +106,8 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
       .then((loaded) => {
         setTrace(loaded);
         setHealData(null);
+        // The previous failure is history once a case file loads cleanly.
+        setError('');
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'failed to load case file'));
   }, [selectedId]);
@@ -119,14 +121,23 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
       return `${t.query_id} ${t.query}`.toLowerCase().includes(needle);
     });
 
+  const selectCase = useCallback(
+    (id: string) => {
+      setSelectedId(id);
+      setSearchParams({ case: id }, { replace: true });
+    },
+    [setSearchParams],
+  );
+
   const moveSelection = useCallback(
     (delta: number) => {
       if (visibleTraces.length === 0) return;
       const index = visibleTraces.findIndex((t) => t.query_id === selectedId);
       const next = visibleTraces[Math.min(visibleTraces.length - 1, Math.max(0, index + delta))];
-      if (next) setSelectedId(next.query_id);
+      // Same path as a click, so the deep link always names the case on screen.
+      if (next) selectCase(next.query_id);
     },
-    [visibleTraces, selectedId],
+    [visibleTraces, selectedId, selectCase],
   );
 
   // Keyboard-first: j/k walk the case list, / focuses search, Esc leaves search.
@@ -186,11 +197,9 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
     setSelectedId(null);
     setTrace(null);
     setHealData(null);
-  }
-
-  function selectCase(id: string) {
-    setSelectedId(id);
-    setSearchParams({ case: id }, { replace: true });
+    // Drop the deep link too — pointing at a case file that no longer exists
+    // would fail on the next reload.
+    setSearchParams({}, { replace: true });
   }
 
   // The in-page tabs are routes, not local state: the URL stays the source of

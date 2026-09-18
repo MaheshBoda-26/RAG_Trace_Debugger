@@ -410,3 +410,7 @@ INFO:     127.0.0.1:51751 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
 9:13:48 AM [vite] (client) hmr update /src/pages/About.tsx, /src/index.css
 9:15:44 AM [vite] (client) hmr update /src/index.css, /src/components/EvalPanel.tsx
 9:16:10 AM [vite] (client) hmr update /src/index.css, /src/components/EvalPanel.tsx
+9:18:34 AM [vite] (client) hmr update /src/DashboardApp.tsx, /src/index.css
+9:19:15 AM [vite] (client) hmr update /src/DashboardApp.tsx, /src/index.css
+9:19:51 AM [vite] (client) hmr update /src/index.css, /src/pages/Home.tsx, /src/DashboardApp.tsx, /src/components/TraceTimeline.tsx, /src/components/EvalPanel.tsx
+9:19:56 AM [vite] (client) hmr update /src/DashboardApp.tsx, /src/index.css
