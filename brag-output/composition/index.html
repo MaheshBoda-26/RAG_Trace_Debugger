@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>RAG Trace Debugger — Brag</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Fraunces";
+        font-style: normal;
+        font-weight: 300 700;
+        src: url(assets/fonts/fraunces-latin.woff2) format("woff2");
+      }
+      @font-face {
+        font-family: "Instrument Sans";
+        font-style: normal;
+        font-weight: 400 700;
+        src: url(assets/fonts/instrument-sans-latin.woff2) format("woff2");
+      }
+      @font-face {
+        font-family: "JetBrains Mono";
+        font-style: normal;
+        font-weight: 400 700;
+        src: url(assets/fonts/jetbrains-mono-latin.woff2) format("woff2");
+      }
+
+      :root {
+        --bg: #131211;
+        --bg-elevated: #1c1a18;
+        --surface: #232120;
+        --border: #3d3b38;
+        --border-strong: #6f6d68;
+        --text: #f3f1ec;
+        --text-muted: #c4c2bb;
+        --text-dim: #97948c;
+        --copper: #d9894a;
+        --copper-dim: rgba(217, 137, 74, 0.55);
+        --verdigris: #8fb8a8;
+        --blood: #cf5f45;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Instrument Sans", system-ui, sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---- persistent evidence-room background ---- */
+      #substrate {
+        position: absolute;
+        inset: 0;
+        background-image: repeating-linear-gradient(
+          to bottom,
+          rgba(243, 241, 236, 0.05) 0 1px,
+          transparent 1px 64px
+        );
+        -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+        mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+      }
+      #evidence-glow {
+        position: absolute;
+        left: 50%;
+        top: 38%;
+        width: 1400px;
+        height: 900px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(closest-side, rgba(217, 137, 74, 0.14), transparent 72%);
+      }
+      #frame-label {
+        position: absolute;
+        top: 54px;
+        left: 80px;
+        right: 80px;
+        display: flex;
+        justify-content: space-between;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 22px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+      #case-no { color: #9a765a; }
+
+      /* ---- shared panel style ---- */
+      .panel {
+        background: var(--bg-elevated);
+        border: 2px solid var(--border);
+        position: relative;
+      }
+      .panel::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--copper);
+        opacity: 0.55;
+      }
+      .exhibit-label {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 22px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+      .meta {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ================= Scene 1 — the lie ================= */
+      #chat-panel {
+        left: 240px;
+        top: 210px;
+        width: 1440px;
+        padding: 44px 52px 40px;
+      }
+      #chat-q {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 24px;
+        color: var(--text-dim);
+        margin: 0 0 26px;
+      }
+      #chat-answer {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 40px;
+        line-height: 1.4;
+        color: var(--text);
+        margin: 0;
+        min-height: 120px;
+      }
+      #chat-answer .caret {
+        display: inline-block;
+        width: 20px;
+        height: 44px;
+        background: var(--copper);
+        vertical-align: -6px;
+        margin-left: 6px;
+      }
+      #stage-rail {
+        position: absolute;
+        left: 240px;
+        top: 560px;
+        width: 1440px;
+        display: flex;
+        gap: 24px;
+      }
+      .rail-stage {
+        flex: 1;
+        padding: 22px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-elevated);
+        border: 2px solid var(--border);
+      }
+      .rail-stage .name {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 24px;
+        color: var(--text-muted);
+      }
+      .rail-stage .ok {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--verdigris);
+        opacity: 0;
+      }
+      .hook-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-family: "Fraunces", Georgia, serif;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: 0.01em;
+        margin: 0;
+      }
+      #hook-1 { top: 660px; font-size: 96px; }
+      #hook-2 { top: 780px; font-size: 72px; color: var(--copper); }
+      #hook-1 em, #hook-2 em { font-style: normal; }
+
+      /* ================= Scene 2 — the evidence ================= */
+      #trace-strip {
+        position: absolute;
+        left: 120px;
+        top: 300px;
+        width: 1680px;
+        display: flex;
+        gap: 26px;
+      }
+      .stage-card {
+        flex: 1;
+        padding: 34px 30px 30px;
+        background: var(--bg-elevated);
+        border: 2px solid var(--border);
+      }
+      .stage-card .idx {
+        display: flex;
+        justify-content: space-between;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 22px;
+        color: var(--text-dim);
+      }
+      .stage-card .idx .st { color: var(--verdigris); }
+      .stage-card h3 {
+        margin: 18px 0 10px;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 30px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .stage-card .dur {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 24px;
+        color: var(--text-dim);
+      }
+      .stage-card.verdict {
+        border-color: var(--copper);
+        box-shadow: 0 0 90px rgba(217, 137, 74, 0.16);
+      }
+      #verdict-stamp {
+        position: absolute;
+        right: 34px;
+        top: 26px;
+        padding: 10px 22px;
+        border: 3px solid var(--copper);
+        color: var(--copper);
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        transform: rotate(-6deg);
+        opacity: 0;
+      }
+      #verdict-reason {
+        position: absolute;
+        left: 240px;
+        top: 600px;
+        width: 1440px;
+        padding: 34px 44px;
+      }
+      #verdict-reason .exhibit-label { margin-bottom: 14px; display: block; }
+      #verdict-reason p {
+        margin: 0;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 34px;
+        line-height: 1.45;
+        color: var(--text);
+      }
+      #verdict-reason .chunk { color: var(--copper); font-weight: 700; }
+
+      /* ================= Scene 3 — the re-test ================= */
+      #compare {
+        position: absolute;
+        left: 200px;
+        top: 250px;
+        width: 1520px;
+        display: flex;
+        gap: 30px;
+      }
+      .compare-col {
+        flex: 1;
+        padding: 40px 48px;
+      }
+      .compare-col h4 {
+        margin: 0 0 26px;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 24px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+      .compare-col .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 32px;
+        padding: 16px 0;
+        border-bottom: 1px solid rgba(61, 59, 56, 0.6);
+        color: var(--text-muted);
+      }
+      .compare-col .row .val { color: var(--text); }
+      #col-after .row .val.after-flash { color: var(--verdigris); }
+      #col-before .row .val.bad { color: var(--blood); }
+      #retest-btn {
+        position: absolute;
+        left: 200px;
+        top: 610px;
+        width: 730px;
+        padding: 30px 0;
+        text-align: center;
+        background: transparent;
+        border: 2px solid var(--copper-dim);
+        color: var(--copper);
+        font-family: "Instrument Sans", system-ui, sans-serif;
+        font-size: 34px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      #retest-cursor {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 34px;
+        height: 48px;
+        z-index: 5;
+      }
+      #improved-stamp {
+        position: absolute;
+        right: 330px;
+        top: 180px;
+        padding: 12px 26px;
+        border: 3px solid var(--verdigris);
+        color: var(--verdigris);
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        transform: rotate(-5deg);
+        opacity: 0;
+      }
+      #kept-line {
+        position: absolute;
+        left: 200px;
+        top: 780px;
+        width: 1520px;
+        text-align: center;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 28px;
+        color: var(--text-dim);
+        margin: 0;
+      }
+      #kept-line .chunk { color: var(--copper); }
+
+      /* ================= Scene 4 — the receipt ================= */
+      #outro-mark {
+        position: absolute;
+        left: 50%;
+        top: 300px;
+        width: 150px;
+        height: 150px;
+        transform: translateX(-50%);
+        stroke: var(--copper);
+        stroke-width: 1.6;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      #outro-name {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 470px;
+        text-align: center;
+        font-family: "Fraunces", Georgia, serif;
+        font-size: 96px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0;
+      }
+      #outro-tagline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 610px;
+        text-align: center;
+        font-family: "Instrument Sans", system-ui, sans-serif;
+        font-size: 38px;
+        color: var(--text-muted);
+        margin: 0;
+      }
+      #outro-receipt {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 730px;
+        text-align: center;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 26px;
+        letter-spacing: 0.04em;
+        color: var(--text-dim);
+        margin: 0;
+      }
+      #outro-receipt .num { color: var(--copper); font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1920"
+      data-height="1080"
+      data-duration="17"
+    >
+      <!-- persistent background layer (untimed: owns its own layout) -->
+      <div id="substrate"></div>
+      <div id="evidence-glow"></div>
+      <div id="frame-label">
+        <span>RAG Trace Debugger</span>
+        <span id="case-no">exhibit / case q12</span>
+      </div>
+
+      <!-- ============ Scene 1 — the lie (0-4.0) ============ -->
+      <section id="scene-1" class="clip" data-start="0" data-duration="4" data-track-index="1">
+        <div id="chat-panel" class="panel" data-layout-allow-overflow="true">
+          <p id="chat-q">&gt; Summarize what the Starter plan does and does not include.</p>
+          <p id="chat-answer"><span id="typed"></span><span class="caret" id="caret"></span></p>
+        </div>
+        <div id="stage-rail">
+          <div class="rail-stage"><span class="name">query_rewrite</span><span class="ok">ok</span></div>
+          <div class="rail-stage"><span class="name">retrieval</span><span class="ok">ok</span></div>
+          <div class="rail-stage"><span class="name">rerank</span><span class="ok">ok</span></div>
+          <div class="rail-stage"><span class="name">assembly</span><span class="ok">ok</span></div>
+          <div class="rail-stage"><span class="name">generation</span><span class="ok">ok</span></div>
+        </div>
+        <h1 id="hook-1" class="hook-line">THE ANSWER WAS WRONG.</h1>
+        <h2 id="hook-2" class="hook-line">EVERY STAGE SAID OK.</h2>
+      </section>
+
+      <!-- ============ Scene 2 — the evidence (4.0-8.5) ============ -->
+      <section id="scene-2" class="clip" data-start="4" data-duration="4.5" data-track-index="2">
+        <div id="trace-strip">
+          <div class="stage-card" id="st-1">
+            <div class="idx"><span>01</span><span class="st">DONE</span></div>
+            <h3>query_rewrite</h3>
+            <div class="dur">0.01 ms</div>
+          </div>
+          <div class="stage-card" id="st-2">
+            <div class="idx"><span>02</span><span class="st">DONE</span></div>
+            <h3>retrieval</h3>
+            <div class="dur">0.16 ms</div>
+          </div>
+          <div class="stage-card verdict" id="st-3">
+            <div class="idx"><span>03</span><span class="st">DONE</span></div>
+            <h3>rerank</h3>
+            <div class="dur">49.11 ms</div>
+            <div id="verdict-stamp">VERDICT · RERANK</div>
+          </div>
+          <div class="stage-card" id="st-4">
+            <div class="idx"><span>04</span><span class="st">DONE</span></div>
+            <h3>assembly</h3>
+            <div class="dur">0.00 ms</div>
+          </div>
+          <div class="stage-card" id="st-5">
+            <div class="idx"><span>05</span><span class="st">DONE</span></div>
+            <h3>generation</h3>
+            <div class="dur">0.04 ms</div>
+          </div>
+        </div>
+        <div id="verdict-reason" class="panel">
+          <span class="exhibit-label">failure reason</span>
+          <p>Needed chunk(s) were retrieved but dropped at rerank: <span class="chunk">pricing#0</span>.</p>
+        </div>
+      </section>
+
+      <!-- ============ Scene 3 — the re-test (8.5-13.0) ============ -->
+      <section id="scene-3" class="clip" data-start="8.5" data-duration="4.5" data-track-index="3">
+        <div id="compare">
+          <div class="compare-col panel" id="col-before">
+            <h4>before · rerank_k 5</h4>
+            <div class="row"><span>pricing#0 in context</span><span class="val bad" id="v-before">false</span></div>
+            <div class="row"><span>key terms in answer</span><span class="val bad" id="v-before2">false</span></div>
+          </div>
+          <div class="compare-col panel" id="col-after">
+            <h4>after · rerank_k 7</h4>
+            <div class="row"><span>pricing#0 in context</span><span class="val" id="v-after">false</span></div>
+            <div class="row"><span>key terms in answer</span><span class="val" id="v-after2">false</span></div>
+          </div>
+        </div>
+        <button id="retest-btn">Re-test this case</button>
+        <svg id="retest-cursor" viewBox="0 0 24 24" fill="none" stroke="#f3f1ec" stroke-width="1.8">
+          <path d="M5 3l14 8-6.5 1.5L9 19z" fill="#f3f1ec" stroke="none"/>
+        </svg>
+        <div id="improved-stamp">IMPROVED</div>
+        <p id="kept-line">the evidence held: <span class="chunk">pricing#0</span> stayed in context</p>
+      </section>
+
+      <!-- ============ Scene 4 — the receipt (13.0-17.0) ============ -->
+      <section id="scene-4" class="clip" data-start="13" data-duration="4" data-track-index="4">
+        <svg id="outro-mark" viewBox="0 0 32 32">
+          <rect x="2" y="2" width="28" height="28"></rect>
+          <path id="spike" d="M6 21h5l2.5-10 3 15 2-5H26"></path>
+        </svg>
+        <h1 id="outro-name">RAG Trace Debugger</h1>
+        <p id="outro-tagline">See which stage broke your answer.</p>
+        <p id="outro-receipt">
+          <span class="num">15/15</span> failures localized ·
+          <span class="num">0</span> framework deps ·
+          runs without API keys
+        </p>
+      </section>
+
+      <!-- ============ audio ============ -->
+      <audio
+        id="bg-music"
+        data-start="0"
+        data-duration="17"
+        data-track-index="10"
+        data-volume="1"
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+      ></audio>
+      <audio id="sfx-hook" data-start="2.35" data-duration="0.18" data-track-index="11" data-volume="0.62" src="assets/sfx/impact/impactSoft_medium_001.ogg"></audio>
+      <audio id="sfx-stamp" data-start="8.74" data-duration="0.12" data-track-index="12" data-volume="0.72" src="assets/sfx/interface/bong_001.ogg"></audio>
+      <audio id="sfx-click" data-start="9.9" data-duration="0.01" data-track-index="13" data-volume="0.55" src="assets/sfx/interface/click_003.ogg"></audio>
+      <audio id="sfx-heal" data-start="17.0" data-duration="1.4" data-track-index="14" data-volume="0.66" src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
+    </div>
+
+    <script src="assets/music/audio-data.js"></script>
+    <script>
+      // ---- constants (authored, not measured) ----
+      var T1 = 0, T2 = 4.0, T3 = 8.5, T4 = 13.0, TOTAL = 17.0;
+      var CUES = { stamp: 8.74, heal: 17.0 }; // beat-locked; heal lands at scene end boundary
+
+      var tl = gsap.timeline({ paused: true });
+
+      // ---- audio-reactive: evidence glow breathes with bass (subtle) ----
+      if (window.AUDIO_DATA && AUDIO_DATA.frames) {
+        var glowEl = document.getElementById("evidence-glow");
+        var lastBass = -1;
+        for (var f = 0; f < AUDIO_DATA.totalFrames; f++) {
+          (function (frame) {
+            tl.call(
+              function () {
+                var bass = frame.bands[0];
+                if (Math.abs(bass - lastBass) > 0.06) {
+                  gsap.set(glowEl, { opacity: 0.55 + bass * 0.9 });
+                  lastBass = bass;
+                }
+              },
+              [],
+              frame / AUDIO_DATA.fps
+            );
+          })(AUDIO_DATA.frames[f]);
+        }
+        gsap.set(glowEl, { opacity: 0.55 });
+      }
+
+      // ================= Scene 1 — the lie =================
+      tl.set("#scene-1", { opacity: 1 }, 0)
+        .fromTo("#chat-panel", { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 0.1)
+        // typed answer: deterministic substring schedule
+        .call(function () {}, [], 0.8)
+        .fromTo("#stage-rail .rail-stage", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, stagger: 0.08, ease: "power2.out" }, 0.55)
+        // hook slams (SFX at 2.35)
+        .fromTo("#hook-1", { scale: 1.18, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.34, ease: "power4.out" }, 2.35)
+        .fromTo("#hook-2", { scale: 1.14, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "power4.out" }, 2.85)
+        .to({}, { duration: 0.01 }, 3.99); // hold to scene end
+
+      // typed answer schedule (chars at ~28/s from 0.8s to 2.2s)
+      (function () {
+        var text = "NOTE: The Starter plan does not include automated bank reconciliation.";
+        var el = document.getElementById("typed");
+        var caret = document.getElementById("caret");
+        var start = 0.8, end = 2.2, steps = Math.floor((end - start) * 30);
+        for (var i = 1; i <= steps; i++) {
+          (function (n) {
+            tl.call(
+              function () {
+                el.textContent = text.slice(0, Math.round((n / steps) * text.length));
+              },
+              [],
+              start + (n / steps) * (end - start)
+            );
+          })(i);
+        }
+        // caret blink via quantized timeline time (deterministic)
+        tl.call(function () {}, [], 0);
+        gsap.set(caret, { opacity: 1 });
+        for (var b = 0; b < 8; b++) {
+          tl.set(caret, { opacity: 0 }, 0.9 + b * 0.26);
+          tl.set(caret, { opacity: 1 }, 1.03 + b * 0.26);
+        }
+      })();
+
+      // rail "ok" ticks on the beat grid (0.545s spacing, from 1.64s, every other beat for readability)
+      (function () {
+        var beats = [1.64, 2.73, 3.82, 4.91];
+        var oks = document.querySelectorAll("#stage-rail .ok");
+        // keep all ticks inside scene 1: clamp to < 3.9
+        var grid = [1.64, 2.19, 2.73, 3.27, 3.8].slice(0, oks.length);
+        for (var i = 0; i < oks.length; i++) {
+          (function (el, t) {
+            tl.fromTo(el, { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 1, duration: 0.22, ease: "power3.out" }, t);
+          })(oks[i], grid[i]);
+        }
+      })();
+
+      // ================= Scene 2 — the evidence =================
+      tl.set("#scene-2", { opacity: 1 }, T2)
+        .fromTo(["#st-1", "#st-2", "#st-4", "#st-5", "#st-3"], { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, stagger: 0.11, ease: "power3.out" }, T2 + 0.05)
+        .fromTo("#verdict-reason", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, T2 + 0.75)
+        // camera push toward the verdict card (beat-locked reveal near 8.74 -> stamp at 8.74)
+        .fromTo("#trace-strip", { scale: 1, x: 0 }, { scale: 1.06, x: 90, duration: 0.9, ease: "power2.inOut" }, T2 + 1.5)
+        .fromTo("#verdict-stamp", { scale: 2.4, opacity: 0, rotation: -14 }, { scale: 1, opacity: 1, rotation: -6, duration: 0.3, ease: "power4.in" }, 8.6)
+        .to("#verdict-stamp", { rotation: -6, duration: 0.01 }, 8.9)
+        .to({}, { duration: 0.01 }, T3 - 0.01);
+
+      // ================= Scene 3 — the re-test =================
+      tl.set("#scene-3", { opacity: 1 }, T3)
+        .fromTo("#col-before", { x: -40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, T3 + 0.1)
+        .fromTo("#col-after", { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, T3 + 0.25)
+        .fromTo("#retest-btn", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, T3 + 0.5)
+        // cursor travels to the button and clicks (SFX click at 9.9)
+        .fromTo("#retest-cursor", { x: 520, y: 760, opacity: 0 }, { x: 520, y: 620, opacity: 1, duration: 0.5, ease: "power2.inOut" }, T3 + 0.9)
+        .to("#retest-cursor", { x: 470, y: 640, duration: 0.45, ease: "power2.inOut" }, T3 + 1.4)
+        .to("#retest-cursor", { scale: 0.82, duration: 0.09, ease: "power2.in" }, 9.9)
+        .to("#retest-cursor", { scale: 1, duration: 0.12, ease: "power2.out" }, 9.99)
+        // values flip
+        .to("#v-after", { duration: 0.01, opacity: 1, onComplete: function () {} }, 10.15)
+        .call(function () {
+          document.getElementById("v-after").textContent = "true";
+          document.getElementById("v-after").classList.add("after-flash");
+          document.getElementById("v-after2").textContent = "true";
+          document.getElementById("v-after2").classList.add("after-flash");
+        }, [], 10.15)
+        // IMPROVED stamps (bell rings into scene boundary)
+        .fromTo("#improved-stamp", { scale: 2.2, opacity: 0, rotation: -12 }, { scale: 1, opacity: 1, rotation: -5, duration: 0.3, ease: "power4.in" }, 10.75)
+        .fromTo("#kept-line", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 11.1)
+        .to({}, { duration: 0.01 }, T4 - 0.01);
+
+      // ================= Scene 4 — the receipt =================
+      tl.set("#scene-4", { opacity: 1 }, T4)
+        // glyph draws stroke-by-stroke
+        .call(function () {
+          var rect = document.querySelector("#outro-mark rect");
+          var spike = document.getElementById("spike");
+          [rect, spike].forEach(function (p) {
+            var len = p.getTotalLength();
+            p.style.strokeDasharray = len;
+            p.style.strokeDashoffset = len;
+          });
+        }, [], T4)
+        .to("#outro-mark rect", { strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut" }, T4 + 0.1)
+        .to("#spike", { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" }, T4 + 0.6)
+        .fromTo("#outro-name", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, T4 + 0.9)
+        .fromTo("#outro-tagline", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, T4 + 1.3)
+        .fromTo("#outro-receipt", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, T4 + 1.65)
+        // music bed at 0.30 gain carried by tween (absolute values replace data-volume)
+        .fromTo("#bg-music", { volume: 0.0 }, { volume: 0.30, duration: 0.6, ease: "power1.out" }, 0)
+        .to("#bg-music", { volume: 0.02, duration: 1.5, ease: "power1.in" }, TOTAL - 1.6)
+        .to({}, { duration: 0.01 }, TOTAL - 0.02);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
