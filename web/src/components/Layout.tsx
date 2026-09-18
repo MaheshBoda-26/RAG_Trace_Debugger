@@ -67,7 +67,7 @@ export function Layout() {
                 with an ellipsis instead of overflowing the header row. */}
             <Link
               to="/"
-              className="flex min-w-0 items-center gap-2.5"
+              className="flex min-h-11 min-w-0 items-center gap-2.5 md:min-h-0"
               aria-label="RAG Trace Debugger — home"
             >
               <Mark className="w-6 h-6 shrink-0 text-primary" />
@@ -129,10 +129,10 @@ transparent menu would let the content show through the links. */}
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`nav-link block py-2 ${
+                  className={`nav-link flex min-h-11 items-center ${
                     // The active rule underlines left-to-right; across a
                     // full-width block that would read as a panel divider.
-                    isActive(link.path) ? 'active after:right-auto after:w-12' : ''
+                    isActive(link.path) ? 'active after:right-auto after:bottom-2.5 after:w-12' : ''
                   }`}
                 >
                   {link.label}
@@ -166,10 +166,10 @@ transparent menu would let the content show through the links. */}
             <nav aria-label="Product">
               <h2 className="exhibit-label mb-4">Surfaces</h2>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/debugger" className="nav-link">Case files</Link></li>
-                <li><Link to="/eval" className="nav-link">Batch review</Link></li>
-                <li><Link to="/corpus" className="nav-link">Corpus</Link></li>
-                <li><Link to="/features" className="nav-link">How it works</Link></li>
+                <li><Link to="/debugger" className="nav-link flex min-h-9 items-center md:min-h-0">Case files</Link></li>
+                <li><Link to="/eval" className="nav-link flex min-h-9 items-center md:min-h-0">Batch review</Link></li>
+                <li><Link to="/corpus" className="nav-link flex min-h-9 items-center md:min-h-0">Corpus</Link></li>
+                <li><Link to="/features" className="nav-link flex min-h-9 items-center md:min-h-0">How it works</Link></li>
               </ul>
             </nav>
 
@@ -181,7 +181,7 @@ transparent menu would let the content show through the links. */}
                     href="https://github.com/MaheshBoda-26/RAG_Trace_Debugger"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="nav-link"
+                    className="nav-link flex min-h-9 items-center md:min-h-0"
                   >
                     Source ↗
                   </a>
@@ -191,13 +191,13 @@ transparent menu would let the content show through the links. */}
                     href="https://github.com/MaheshBoda-26/RAG_Trace_Debugger/blob/main/docs/SDK.md"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="nav-link"
+                    className="nav-link flex min-h-9 items-center md:min-h-0"
                   >
                     Instrumentation SDK ↗
                   </a>
                 </li>
                 <li>
-                  <Link to="/about" className="nav-link">Method &amp; caveats</Link>
+                  <Link to="/about" className="nav-link flex min-h-9 items-center md:min-h-0">Method &amp; caveats</Link>
                 </li>
               </ul>
             </nav>

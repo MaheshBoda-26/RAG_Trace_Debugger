@@ -239,7 +239,7 @@ export function LandingTraceTimeline() {
             max={1000}
             value={Math.round(progress * 1000)}
             onChange={(e) => onScrub(Number(e.target.value) / 1000)}
-            className="h-1 w-full max-w-xs cursor-ew-resize appearance-none bg-border accent-primary"
+            className="playhead w-full max-w-xs"
             aria-label="Scrub through the recorded run"
             aria-valuetext={`${lit} of ${EXHIBITS.length} exhibits complete`}
           />

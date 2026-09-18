@@ -95,8 +95,10 @@ export function QueryList({
 }: QueryListProps) {
   if (loading) return <QueryListSkeleton />;
 
+  // Chips are the densest controls in the app: desktop keeps them hairline-thin,
+  // but a thumb gets a taller row to land on.
   const chip = (active: boolean) =>
-    `border px-2 py-0.5 font-mono text-[0.6875rem] transition-colors ${
+    `border px-2.5 py-2 font-mono text-[0.6875rem] transition-colors md:px-2 md:py-0.5 ${
       active
         ? 'border-primary text-primary'
         : 'border-border text-text-dim hover:text-text'

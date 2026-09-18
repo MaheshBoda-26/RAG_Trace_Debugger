@@ -424,3 +424,9 @@ INFO:     127.0.0.1:51751 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
   ➜  Local:   http://127.0.0.1:5173/
 9:52:07 AM [vite] (client) hmr update /src/index.css
 9:56:29 AM [vite] (client) page reload public/__shots/view.html
+10:20:34 AM [vite] (client) hmr update /src/index.css
+10:22:08 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+10:22:54 AM [vite] (client) hmr update /src/index.css, /src/components/LandingTraceTimeline.tsx
+10:23:41 AM [vite] (client) hmr update /src/index.css, /src/components/StageCard.tsx
+10:24:28 AM [vite] (client) hmr update /src/index.css, /src/components/QueryList.tsx
+10:25:18 AM [vite] (client) hmr update /src/components/Layout.tsx, /src/index.css

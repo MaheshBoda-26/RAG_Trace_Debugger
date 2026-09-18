@@ -972,4 +972,66 @@ strong {
   gap: 0;
   grid-template-columns: 1fr;
 }
+
+/* ==========================================================================
+   Phone ergonomics (<= 767px)
+   A phone is not a shrunken desktop: the pointer is a thumb, and iOS Safari
+   zooms the whole page whenever a focused control's text is under 16px, which
+   throws the layout sideways mid-typing. So on a phone, form text is 16px, and
+   every control a thumb has to hit gets a 44px box — Apple/Google guidance;
+   WCAG 2.5.8's floor is 24px, so this is headroom, not a rescue.
+   ========================================================================== */
+@media (max-width: 767px) {
+  /* Respond on first touch instead of waiting out a double-tap-zoom. */
+  a,
+  button,
+  summary,
+  input,
+  textarea,
+  select {
+    touch-action: manipulation;
+  }
+
+  /* 16px is the threshold below which Safari zooms on focus. */
+  .field {
+    font-size: 1rem;
+    line-height: 1.5;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .btn,
+  .btn-sm {
+    min-height: 2.75rem;
+  }
+
+  .btn-sm {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* ---- Playhead: the scrub handle for a recorded run -----------------------
+   At desktop size the control *is* its 4px hairline. On a phone the input
+   keeps that hairline look but grows a 44px-tall band around it, because a
+   4px strip is not something a thumb can land on. */
+.playhead {
+  appearance: none;
+  cursor: ew-resize;
+  accent-color: var(--color-primary);
+  height: 0.25rem;
+  background-color: var(--color-border);
+}
+
+@media (max-width: 767px) {
+  .playhead {
+    height: 2.75rem;
+    background-color: transparent;
+    background-image: linear-gradient(
+      var(--color-border),
+      var(--color-border)
+    );
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 0.25rem;
+  }
+}
 } /* @layer components */

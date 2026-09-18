@@ -133,7 +133,7 @@ function LiveDemo() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Ask about Northwind SaaS…"
-            className="field flex-1 text-sm"
+            className="field flex-1 text-base md:text-sm"
           />
           <button type="submit" disabled={running} className="btn btn-primary whitespace-nowrap">
             {running ? 'Tracing…' : 'Run traced case'}
@@ -207,7 +207,7 @@ export function Home() {
               <Link to="/debugger" className="btn btn-primary">
                 Open a case file
               </Link>
-              <Link to="/features" className="nav-link">
+              <Link to="/features" className="nav-link py-3 md:py-1">
                 How it works →
               </Link>
             </div>

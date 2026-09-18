@@ -11,7 +11,7 @@ function JsonView({ data, stageName }: JsonViewProps) {
   if (!data || Object.keys(data).length === 0) return null;
   return (
     <details className="group mt-2">
-      <summary className="exhibit-label flex cursor-pointer items-center gap-1.5 hover:text-text-muted">
+      <summary className="exhibit-label flex min-h-11 cursor-pointer items-center gap-1.5 hover:text-text-muted md:min-h-0">
         <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
