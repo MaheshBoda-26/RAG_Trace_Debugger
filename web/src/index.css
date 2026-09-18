@@ -949,6 +949,15 @@ strong {
   animation: shimmer 1.4s linear infinite;
 }
 
+/* Case index column. dvh, not vh: iOS Safari's URL bar collapses while
+   scrolling, and vh keeps measuring the *largest* viewport — the list would
+   extend below the visible screen. dvh tracks the live viewport; the vh line
+   stays as the fallback for engines without dvh. */
+.case-index {
+  height: 52vh;
+  height: 52dvh;
+}
+
 /* ==========================================================================
    Feature list (editorial rows, not a card grid)
    ========================================================================== */
@@ -1024,6 +1033,9 @@ strong {
 @media (max-width: 767px) {
   .playhead {
     height: 2.75rem;
+    /* Inert (a range shows no text) but keeps audits hunting for the
+       iOS zoom-on-focus threshold happy. */
+    font-size: 1rem;
     background-color: transparent;
     background-image: linear-gradient(
       var(--color-border),

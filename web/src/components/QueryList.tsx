@@ -105,7 +105,7 @@ export function QueryList({
     }`;
 
   return (
-    <div className="flex h-[52vh] flex-col">
+    <div className="case-index flex flex-col">
       <div className="hairline-b px-3 pb-3">
         <div className="flex flex-wrap gap-1" role="group" aria-label="Filter by failure stage">
           {FILTERS.map((item) => (
