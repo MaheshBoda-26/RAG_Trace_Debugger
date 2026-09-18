@@ -216,7 +216,9 @@ h6 {
 }
 
 h1 {
-  font-size: clamp(2.5rem, 6vw, 4.25rem);
+  /* 2.25rem floor, not 2.5: at 360-375px the hero's second line needs 340px
+     and has 320-335px, so a 40px floor forces an unintended third line. */
+  font-size: clamp(2.25rem, 6vw, 4.25rem);
   line-height: 1.02;
   letter-spacing: -0.03em;
 }
