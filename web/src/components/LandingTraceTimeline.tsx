@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AnimatePresence, animate, motion, useInView, useReducedMotion } from 'framer-motion';
 import type { AnimationPlaybackControls } from 'framer-motion';
+
+/** Router-aware so the CTA does a client-side transition, not a page reload. */
+const MotionLink = motion.create(Link);
 
 /**
  * "The run" — the signature interaction.
@@ -260,15 +264,18 @@ export function LandingTraceTimeline() {
                   <span className="stamp stamp-bad">verdict · {CASE.verdict}</span>
                   <p className="text-sm text-text-muted max-w-xl">{CASE.reason}</p>
                 </div>
-                <motion.a
-                  href="/debugger"
+                {/* The case above is a recorded illustration, not a stored trace,
+                    so this opens the dashboard — where any case can be re-tested —
+                    rather than deep-linking to a query id that may not exist. */}
+                <MotionLink
+                  to="/debugger"
                   className="btn btn-retest whitespace-nowrap"
                   initial={{ opacity: 0.85 }}
                   animate={{ scale: [1, 1.035, 1], opacity: 1 }}
                   transition={{ duration: 0.6, delay: 0.25, ease: [0.2, 0, 0, 1] }}
                 >
-                  Re-test this case
-                </motion.a>
+                  Re-test a case
+                </MotionLink>
               </motion.div>
             ) : (
               <motion.p

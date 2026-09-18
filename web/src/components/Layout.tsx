@@ -63,9 +63,15 @@ export function Layout() {
       >
         <nav className="container" aria-label="Main">
           <div className="flex h-14 items-center justify-between gap-6 md:h-16">
-            <Link to="/" className="flex items-center gap-2.5" aria-label="RAG Trace Debugger — home">
-              <Mark className="w-6 h-6 text-primary" />
-              <span className="whitespace-nowrap font-display text-[1.0625rem] font-semibold tracking-tight text-text">
+            {/* min-w-0 + truncate: on a very narrow phone the wordmark gives way
+                with an ellipsis instead of overflowing the header row. */}
+            <Link
+              to="/"
+              className="flex min-w-0 items-center gap-2.5"
+              aria-label="RAG Trace Debugger — home"
+            >
+              <Mark className="w-6 h-6 shrink-0 text-primary" />
+              <span className="truncate font-display text-[1.0625rem] font-semibold tracking-tight text-text">
                 RAG Trace Debugger
               </span>
               <span className="exhibit-label hidden xl:inline text-text-dim">diagnostic</span>
