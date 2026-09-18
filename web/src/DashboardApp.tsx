@@ -193,7 +193,9 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
         .filter(Boolean);
       const created = await api.runQuery({ query: queryText, key_terms });
       setTrace(created);
-      setSelectedId(created.query_id);
+      // Through selectCase, not setSelectedId: the URL is the source of truth,
+      // so a freshly run case must take over ?case= like any clicked case.
+      selectCase(created.query_id);
       setCaseQuery('');
       await loadTraces();
     } catch (err) {
