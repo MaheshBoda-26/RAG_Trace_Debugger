@@ -1,0 +1,5 @@
+Every broken RAG answer looks innocent. Ours did too — until the trace said rerank dropped the one chunk that had the answer.
+
+RAG Trace Debugger names the stage that broke your answer, then re-runs the case with fixed parameters to prove it. 15/15 failures localized, zero framework deps, runs without API keys.
+
+https://github.com/latent-spaces/rag-trace-debugger
