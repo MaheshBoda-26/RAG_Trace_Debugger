@@ -394,3 +394,9 @@ INFO:     127.0.0.1:51751 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
 11:20:23 PM [vite] vite.config.ts changed, restarting server...
 11:20:23 PM [vite] (client) Re-optimizing dependencies because lockfile has changed
 11:20:23 PM [vite] server restarted.
+
+  VITE v8.1.5  ready in 303 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
+9:06:31 AM [vite] (client) hmr update /src/index.css, /src/components/ThemeToggle.tsx, /src/components/CommandPalette.tsx
+9:06:31 AM [vite] (client) hmr update /src/index.css

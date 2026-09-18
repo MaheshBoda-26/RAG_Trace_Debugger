@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 export type Theme = 'dark' | 'light';
 
@@ -11,8 +11,29 @@ function readTheme(): Theme {
   return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
 }
 
+/**
+ * One theme for the whole document. The toggle and the ⌘K palette both render
+ * this state, so it lives in a module-level store rather than in per-hook
+ * useState — otherwise the two copies drift and the palette offers to switch to
+ * the theme that is already active.
+ */
+let currentTheme: Theme = readTheme();
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot(): Theme {
+  return currentTheme;
+}
+
 /** Applies + remembers an explicit choice. Dark remains the default. */
 function applyTheme(theme: Theme): void {
+  currentTheme = theme;
   document.documentElement.setAttribute('data-theme', theme);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', THEME_COLOR[theme]);
@@ -21,21 +42,14 @@ function applyTheme(theme: Theme): void {
   } catch {
     /* private mode — the choice just won't persist */
   }
+  listeners.forEach((listener) => listener());
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(readTheme);
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   const toggleTheme = useCallback(() => {
-    setTheme((previous) => {
-      const next: Theme = previous === 'dark' ? 'light' : 'dark';
-      applyTheme(next);
-      return next;
-    });
+    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
   }, []);
 
   return { theme, toggleTheme };

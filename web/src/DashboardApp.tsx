@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api, deleteTraces } from './api/client';
 import type { FailureStage, Framework, HealResponse, Trace, TraceSummary } from './types/trace';
@@ -10,10 +10,10 @@ import { EvalPanel } from './components/EvalPanel';
 
 type Tab = 'debugger' | 'eval' | 'corpus';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'debugger', label: 'case files' },
-  { id: 'eval', label: 'batch review' },
-  { id: 'corpus', label: 'corpus' },
+const TABS: { id: Tab; label: string; path: string }[] = [
+  { id: 'debugger', label: 'case files', path: '/debugger' },
+  { id: 'eval', label: 'batch review', path: '/eval' },
+  { id: 'corpus', label: 'corpus', path: '/corpus' },
 ];
 
 type Health = {
@@ -54,6 +54,7 @@ function HealthPill({ health }: { health: Health | null }) {
 export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // The three routes reuse this component, so React keeps its state across a
   // navigation (e.g. /eval -> /debugger). Without this the tab would stay on
@@ -192,6 +193,14 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
     setSearchParams({ case: id }, { replace: true });
   }
 
+  // The in-page tabs are routes, not local state: the URL stays the source of
+  // truth so the back button, refresh, and the header's active link all agree.
+  function selectTab(next: Tab) {
+    setTab(next);
+    const target = TABS.find((item) => item.id === next)?.path ?? '/debugger';
+    navigate(next === 'debugger' && selectedId ? `${target}?case=${encodeURIComponent(selectedId)}` : target);
+  }
+
   return (
     <div className="min-h-screen bg-bg text-text">
       <header className="sticky top-14 z-30 hairline-b bg-bg/95 backdrop-blur md:top-16">
@@ -207,7 +216,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
                 key={item.id}
                 role="tab"
                 aria-selected={tab === item.id}
-                onClick={() => setTab(item.id)}
+                onClick={() => selectTab(item.id)}
                 className={`nav-link relative ${tab === item.id ? 'active' : ''}`}
               >
                 {item.label}
