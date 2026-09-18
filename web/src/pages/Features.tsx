@@ -74,7 +74,7 @@ export function Features() {
           <div className="max-w-3xl">
             <p className="exhibit-label">method</p>
             <h1 className="mt-5">
-              How the instrument
+              How the instrument{' '}
               <br />
               reads a failure.
             </h1>

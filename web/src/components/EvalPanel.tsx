@@ -58,6 +58,16 @@ export function EvalPanel({ loading: initialLoading = false }: EvalPanelProps = 
   }
 
   async function run() {
+    // The batch rebuilds the trace store (run_eval clears it first), so running
+    // it silently replaces every case file saved from the dashboard. Ask first:
+    // losing your case files should never be a side effect of reading a metric.
+    if (
+      !confirm(
+        'Run the labeled batch?\n\nThis re-runs all labeled cases and resets the stored case files.',
+      )
+    ) {
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -88,12 +98,20 @@ export function EvalPanel({ loading: initialLoading = false }: EvalPanelProps = 
                 } · run ${results.ran_at.slice(0, 16).replace('T', ' ')}`
               : 'Run the labeled batch to measure localization.'}
           </p>
+          <p className="meta mt-1 text-text-dim">
+            a batch run replaces the stored case files
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button onClick={loadLatest} disabled={loading} className="btn btn-secondary btn-sm">
             load latest
           </button>
-          <button onClick={run} disabled={loading} className="btn btn-primary btn-sm">
+          <button
+            onClick={run}
+            disabled={loading}
+            className="btn btn-primary btn-sm"
+            title="Re-runs every labeled case and resets the stored case files"
+          >
             {loading ? 'running…' : 'run batch'}
           </button>
         </div>

@@ -156,6 +156,15 @@ html[data-theme="light"] {
   --shadow-card: 0 1px 0 0 oklch(0 0 0 / 0.06);
 }
 
+/* ---------------------------------------------------------------------------
+   Cascade layers
+   ---------------------------------------------------------------------------
+   Tailwind v4 orders theme < base < components < utilities. Plain (unlayered)
+   CSS outranks *every* layer, so leaving these rules unlayered silently killed
+   any utility that touches the same property — `md:hidden` on a `.btn`, `py-5`
+   on a `.container`, `text-text-muted` on a heading. Sorting them into the
+   right layer is what lets the component classes and the utilities coexist. */
+@layer base {
 * {
   box-sizing: border-box;
 }
@@ -259,7 +268,9 @@ strong {
   outline-offset: 2px;
   border-radius: 2px;
 }
+} /* @layer base */
 
+@layer components {
 .skip-link {
   position: absolute;
   left: -9999px;
@@ -959,3 +970,4 @@ strong {
   gap: 0;
   grid-template-columns: 1fr;
 }
+} /* @layer components */

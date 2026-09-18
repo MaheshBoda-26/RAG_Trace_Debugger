@@ -196,7 +196,7 @@ export function Home() {
           <div className="max-w-3xl">
             <p className="exhibit-label">diagnostic layer for RAG pipelines</p>
             <h1 className="mt-5">
-              See which stage
+              See which stage{' '}
               <br />
               broke your answer.
             </h1>

@@ -58,25 +58,28 @@ export function Layout() {
 
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-colors ${
-          isScrolled ? 'bg-bg hairline-b' : 'bg-transparent border-b border-transparent'
+          isScrolled || mobileMenuOpen ? 'bg-bg hairline-b' : 'bg-transparent border-b border-transparent'
         }`}
       >
         <nav className="container" aria-label="Main">
           <div className="flex h-14 items-center justify-between gap-6 md:h-16">
             <Link to="/" className="flex items-center gap-2.5" aria-label="RAG Trace Debugger — home">
               <Mark className="w-6 h-6 text-primary" />
-              <span className="font-display text-[1.0625rem] font-semibold tracking-tight text-text">
+              <span className="whitespace-nowrap font-display text-[1.0625rem] font-semibold tracking-tight text-text">
                 RAG Trace Debugger
               </span>
-              <span className="exhibit-label hidden lg:inline text-text-dim">diagnostic</span>
+              <span className="exhibit-label hidden xl:inline text-text-dim">diagnostic</span>
             </Link>
 
-            <div className="hidden items-center gap-7 md:flex">
+            {/* Five links plus the brand, search and theme controls only fit
+                once the viewport passes ~900px — below that the panel collapses
+                into the menu button instead of wrapping onto three lines. */}
+            <div className="hidden items-center gap-7 lg:flex">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`nav-link ${isActive(link.path) ? 'active' : ''}`}
+                  className={`nav-link whitespace-nowrap ${isActive(link.path) ? 'active' : ''}`}
                   aria-current={isActive(link.path) ? 'page' : undefined}
                 >
                   {link.label}
@@ -95,7 +98,7 @@ export function Layout() {
               <CommandPalette />
               <ThemeToggle />
               <button
-                className="btn btn-ghost btn-sm md:hidden"
+                className="btn btn-ghost btn-sm lg:hidden"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-expanded={mobileMenuOpen}
                 aria-controls="mobile-menu"
@@ -112,13 +115,19 @@ export function Layout() {
             </div>
           </div>
 
+          {/* Opaque panel: the header sits fixed over the page, so a
+transparent menu would let the content show through the links. */}
           {mobileMenuOpen && (
-            <div id="mobile-menu" className="hairline-t py-2 md:hidden">
+            <div id="mobile-menu" className="hairline-t hairline-b bg-bg py-2 lg:hidden">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`nav-link block py-2 ${isActive(link.path) ? 'active' : ''}`}
+                  className={`nav-link block py-2 ${
+                    // The active rule underlines left-to-right; across a
+                    // full-width block that would read as a panel divider.
+                    isActive(link.path) ? 'active after:right-auto after:w-12' : ''
+                  }`}
                 >
                   {link.label}
                 </Link>

@@ -10,10 +10,10 @@ import { EvalPanel } from './components/EvalPanel';
 
 type Tab = 'debugger' | 'eval' | 'corpus';
 
-const TABS: { id: Tab; label: string; path: string }[] = [
-  { id: 'debugger', label: 'case files', path: '/debugger' },
-  { id: 'eval', label: 'batch review', path: '/eval' },
-  { id: 'corpus', label: 'corpus', path: '/corpus' },
+const TABS: { id: Tab; label: string; title: string; path: string }[] = [
+  { id: 'debugger', label: 'case files', title: 'Case files', path: '/debugger' },
+  { id: 'eval', label: 'batch review', title: 'Batch review', path: '/eval' },
+  { id: 'corpus', label: 'corpus', title: 'Corpus', path: '/corpus' },
 ];
 
 type Health = {
@@ -206,7 +206,9 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
       <header className="sticky top-14 z-30 hairline-b bg-bg/95 backdrop-blur md:top-16">
         <div className="container flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3">
           <div className="flex items-center gap-4">
-            <h1 className="font-display text-base font-semibold tracking-tight">Case files</h1>
+            <h1 className="font-display text-base font-semibold tracking-tight">
+              {TABS.find((item) => item.id === tab)?.title ?? 'Case files'}
+            </h1>
             <HealthPill health={health} />
           </div>
 

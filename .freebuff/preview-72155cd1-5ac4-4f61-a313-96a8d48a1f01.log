@@ -400,3 +400,13 @@ INFO:     127.0.0.1:51751 - "GET /api/traces/q_a44871e49a78 HTTP/1.1" 200 OK
   ➜  Local:   http://127.0.0.1:5173/
 9:06:31 AM [vite] (client) hmr update /src/index.css, /src/components/ThemeToggle.tsx, /src/components/CommandPalette.tsx
 9:06:31 AM [vite] (client) hmr update /src/index.css
+9:08:46 AM [vite] (client) hmr update /src/index.css
+9:09:05 AM [vite] (client) hmr update /src/components/Layout.tsx, /src/index.css
+9:11:12 AM [vite] (client) hmr update /src/components/Layout.tsx, /src/index.css
+9:11:25 AM [vite] (client) hmr update /src/components/Layout.tsx, /src/index.css
+9:12:28 AM [vite] (client) hmr update /src/DashboardApp.tsx, /src/index.css
+9:12:58 AM [vite] (client) hmr update /src/pages/Features.tsx, /src/index.css
+9:12:58 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+9:13:48 AM [vite] (client) hmr update /src/pages/About.tsx, /src/index.css
+9:15:44 AM [vite] (client) hmr update /src/index.css, /src/components/EvalPanel.tsx
+9:16:10 AM [vite] (client) hmr update /src/index.css, /src/components/EvalPanel.tsx

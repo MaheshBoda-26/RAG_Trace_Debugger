@@ -33,7 +33,10 @@ export function About() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
+            // A fraction-of-element trigger (amount) can never fire on a block
+            // taller than the viewport — this section is ~4000px. Trigger on
+            // how far it has entered the viewport instead.
+            viewport={{ once: true, margin: '0px 0px -120px 0px' }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="max-w-4xl mx-auto space-y-12"
           >
@@ -313,7 +316,7 @@ export function About() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
+              viewport={{ once: true, margin: '0px 0px -120px 0px' }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
               <Link to="/debugger" className="btn btn-primary mr-4">
@@ -332,7 +335,7 @@ export function About() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
+            viewport={{ once: true, margin: '0px 0px -120px 0px' }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="max-w-2xl mx-auto text-center card"
           >
