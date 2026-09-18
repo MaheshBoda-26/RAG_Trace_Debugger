@@ -76,6 +76,7 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const casePanelRef = useRef<HTMLElement | null>(null);
 
   const loadTraces = useCallback(async () => {
     try {
@@ -110,6 +111,18 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
         setError('');
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'failed to load case file'));
+  }, [selectedId]);
+
+  // On a phone the case index sits *above* the case file, so opening a case can
+  // leave the record itself below the fold. 'nearest' scrolls only when the
+  // panel is out of view — on desktop, where it is already beside the list, this
+  // does nothing.
+  useEffect(() => {
+    if (!selectedId) return;
+    const panel = casePanelRef.current;
+    if (!panel) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    panel.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
   }, [selectedId]);
 
   // Client-side framework and text filtering (the API filters by stage only).
@@ -228,7 +241,9 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
                 role="tab"
                 aria-selected={tab === item.id}
                 onClick={() => selectTab(item.id)}
-                className={`nav-link relative ${tab === item.id ? 'active' : ''}`}
+                className={`nav-link relative before:absolute before:-inset-x-2 before:-inset-y-2 before:content-[''] ${
+                  tab === item.id ? 'active' : ''
+                }`}
               >
                 {item.label}
                 {tab === item.id && (
@@ -324,7 +339,12 @@ export function DashboardApp({ initialTab = 'debugger' }: { initialTab?: Tab }) 
               </div>
             </aside>
 
-            <section role="tabpanel" aria-label="Selected case file">
+            <section
+              ref={casePanelRef}
+              role="tabpanel"
+              aria-label="Selected case file"
+              className="scroll-mt-40 lg:scroll-mt-36"
+            >
               {trace ? (
                 <div>
                   <div className="mb-4">

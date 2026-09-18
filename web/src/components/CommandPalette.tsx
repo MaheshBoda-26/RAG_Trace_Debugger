@@ -153,7 +153,7 @@ export function CommandPalette() {
                   onKeyDown={onListKeyDown}
                   placeholder="Jump to a surface…"
                   aria-label="Search commands"
-                  className="w-full bg-transparent px-4 py-3 font-mono text-sm text-text placeholder:text-text-dim focus:outline-none"
+                  className="w-full bg-transparent px-4 py-3 font-mono text-base text-text placeholder:text-text-dim focus:outline-none"
                 />
               </div>
               <ul className="max-h-72 overflow-y-auto py-1">
